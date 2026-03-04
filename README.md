@@ -1,4 +1,4 @@
-# 🌟 Beacon — NGO & Volunteering Management System
+#Beacon — NGO & Volunteering Management System
 
 A Java-based desktop application for centralizing and streamlining the core operations of non-governmental organizations.
 
