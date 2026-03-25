@@ -22,6 +22,15 @@ public class DatabaseConnection {
     public static Connection getConnection() throws SQLException {
         try {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+
+            String normalizedUrl = URL.toLowerCase();
+            boolean integratedAuth = normalizedUrl.contains("integratedsecurity=true")
+                    || normalizedUrl.contains("authentication=activedirectoryintegrated");
+
+            if (integratedAuth) {
+                return DriverManager.getConnection(URL);
+            }
+
             return DriverManager.getConnection(URL, USER, PASSWORD);
         } catch (ClassNotFoundException e) {
             System.err.println("SQL Server JDBC Driver not found.");
