@@ -57,6 +57,14 @@ beacon-ngo-system/
    $env:BEACON_DB_PASSWORD = "yourStrongPassword"
    ```
 
+### Sprint 2 Migration (US5-US8)
+
+After pulling Sprint 2 code, run this migration script once:
+
+`sql/sprint2_us5_us8_migration.sql`
+
+This creates the `expenses` and `volunteer_applications` tables used by US5-US8.
+
 ## How to Run
 
 Simply execute:
