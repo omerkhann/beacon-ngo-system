@@ -3,45 +3,53 @@
 -- Sprint 1: Campaign & Donation Core
 -- ============================================
 
-CREATE DATABASE IF NOT EXISTS beacon_db;
-USE beacon_db;
+-- 1. Create Database (Check if exists first)
+IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'beacon_db')
+BEGIN
+    CREATE DATABASE beacon_db;
+END
+GO
 
--- Users table (supports Admin, Donor, Volunteer, Campaign Manager roles)
-CREATE TABLE IF NOT EXISTS users (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
+USE beacon_db;
+GO
+
+-- 2. Users table (Use IDENTITY for auto-increment and CHECK for ENUM)
+CREATE TABLE users (
+    user_id INT IDENTITY(1,1) PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100),
-    role ENUM('ADMIN', 'DONOR', 'VOLUNTEER', 'CAMPAIGN_MANAGER') NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'DONOR', 'VOLUNTEER', 'CAMPAIGN_MANAGER')),
+    created_at DATETIME DEFAULT GETDATE()
 );
 
--- Campaigns table (US1, US2)
-CREATE TABLE IF NOT EXISTS campaigns (
-    campaign_id INT AUTO_INCREMENT PRIMARY KEY,
+-- 3. Campaigns table
+CREATE TABLE campaigns (
+    campaign_id INT IDENTITY(1,1) PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
-    description TEXT,
+    description NVARCHAR(MAX),
     goal_amount DECIMAL(12, 2) NOT NULL,
     current_funds DECIMAL(12, 2) DEFAULT 0.00,
     deadline DATE NOT NULL,
-    status ENUM('ACTIVE', 'COMPLETED', 'CANCELLED') DEFAULT 'ACTIVE',
+    status VARCHAR(20) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'COMPLETED', 'CANCELLED')),
     created_by INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (created_by) REFERENCES users(user_id)
 );
 
--- Donations table (US3, US4)
-CREATE TABLE IF NOT EXISTS donations (
-    donation_id INT AUTO_INCREMENT PRIMARY KEY,
+-- 4. Donations table
+CREATE TABLE donations (
+    donation_id INT IDENTITY(1,1) PRIMARY KEY,
     campaign_id INT NOT NULL,
     donor_id INT NOT NULL,
     amount DECIMAL(12, 2) NOT NULL,
-    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    transaction_date DATETIME DEFAULT GETDATE(),
     receipt_number VARCHAR(50) UNIQUE,
     FOREIGN KEY (campaign_id) REFERENCES campaigns(campaign_id),
     FOREIGN KEY (donor_id) REFERENCES users(user_id)
 );
+
 
 -- Sample data for testing
 INSERT INTO users (username, password, full_name, email, role) VALUES

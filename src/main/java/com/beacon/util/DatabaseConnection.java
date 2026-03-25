@@ -6,45 +6,34 @@ import java.sql.SQLException;
 
 /**
  * Database connection utility class.
- * Provides a centralized JDBC connection to the MySQL database.
+ * Provides a centralized JDBC connection to the SQL Server database.
  */
 public class DatabaseConnection {
 
-    private static final String URL = "jdbc:mysql://localhost:3306/beacon_db";
-    private static final String USER = "root";
-    private static final String PASSWORD = "password"; // Update with your MySQL password
-
-    private static Connection connection = null;
+    private static final String URL = System.getenv().getOrDefault(
+            "BEACON_DB_URL",
+            "jdbc:sqlserver://localhost:1433;databaseName=beacon_db;encrypt=true;trustServerCertificate=true");
+    private static final String USER = System.getenv().getOrDefault("BEACON_DB_USER", "sa");
+    private static final String PASSWORD = System.getenv().getOrDefault("BEACON_DB_PASSWORD", "password");
 
     /**
-     * Returns a singleton database connection.
+     * Returns a new database connection for each call.
      */
     public static Connection getConnection() throws SQLException {
-        if (connection == null || connection.isClosed()) {
-            try {
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                connection = DriverManager.getConnection(URL, USER, PASSWORD);
-                System.out.println("Database connected successfully.");
-            } catch (ClassNotFoundException e) {
-                System.err.println("MySQL JDBC Driver not found.");
-                e.printStackTrace();
-                throw new SQLException("Driver not found", e);
-            }
+        try {
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            return DriverManager.getConnection(URL, USER, PASSWORD);
+        } catch (ClassNotFoundException e) {
+            System.err.println("SQL Server JDBC Driver not found.");
+            e.printStackTrace();
+            throw new SQLException("Driver not found", e);
         }
-        return connection;
     }
 
     /**
-     * Closes the database connection.
+     * Deprecated no-op. Connections are managed via try-with-resources.
      */
     public static void closeConnection() {
-        if (connection != null) {
-            try {
-                connection.close();
-                System.out.println("Database connection closed.");
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
+        // Intentionally empty.
     }
 }

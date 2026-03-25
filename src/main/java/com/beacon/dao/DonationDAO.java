@@ -51,6 +51,34 @@ public class DonationDAO {
     }
 
     /**
+     * US3: Record donation using an existing transaction.
+     */
+    public boolean processDonation(Connection conn, Donation donation) throws SQLException {
+        String receiptNumber = "RCT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        donation.setReceiptNumber(receiptNumber);
+
+        String sql = "INSERT INTO donations (campaign_id, donor_id, amount, receipt_number) VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setInt(1, donation.getCampaignId());
+            stmt.setInt(2, donation.getDonorId());
+            stmt.setBigDecimal(3, donation.getAmount());
+            stmt.setString(4, donation.getReceiptNumber());
+
+            int rows = stmt.executeUpdate();
+            if (rows > 0) {
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    if (keys.next()) {
+                        donation.setDonationId(keys.getInt(1));
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * US4: Retrieve all donations made by a specific donor.
      * Pre-condition: Donor must be logged in.
      * Post-condition: Chronological history displayed.

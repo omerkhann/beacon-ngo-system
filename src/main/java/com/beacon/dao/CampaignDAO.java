@@ -114,6 +114,19 @@ public class CampaignDAO {
     }
 
     /**
+     * US3: Update funds within an existing transaction.
+     */
+    public boolean updateCampaignFunds(Connection conn, int campaignId, BigDecimal donationAmount) throws SQLException {
+        String sql = "UPDATE campaigns SET current_funds = current_funds + ? WHERE campaign_id = ? AND status = 'ACTIVE'";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setBigDecimal(1, donationAmount);
+            stmt.setInt(2, campaignId);
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    /**
      * Retrieve a single campaign by ID.
      */
     public Campaign getCampaignById(int campaignId) {
@@ -131,6 +144,24 @@ public class CampaignDAO {
         } catch (SQLException e) {
             System.err.println("Error fetching campaign: " + e.getMessage());
             e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * US3: Retrieve and lock a campaign row for safe concurrent donation
+     * processing.
+     */
+    public Campaign getCampaignByIdForUpdate(Connection conn, int campaignId) throws SQLException {
+        String sql = "SELECT * FROM campaigns WITH (UPDLOCK, ROWLOCK) WHERE campaign_id = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, campaignId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToCampaign(rs);
+                }
+            }
         }
         return null;
     }

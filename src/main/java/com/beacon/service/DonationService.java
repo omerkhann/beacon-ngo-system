@@ -4,8 +4,12 @@ import com.beacon.dao.CampaignDAO;
 import com.beacon.dao.DonationDAO;
 import com.beacon.model.Campaign;
 import com.beacon.model.Donation;
+import com.beacon.util.DatabaseConnection;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -28,37 +32,78 @@ public class DonationService {
      * Pre-condition: Campaign must be ACTIVE.
      */
     public boolean processDonation(int campaignId, int donorId, BigDecimal amount) {
+        return processDonationWithReceipt(campaignId, donorId, amount) != null;
+    }
+
+    /**
+     * US3 + US4: Process donation atomically and return receipt data.
+     */
+    public Donation processDonationWithReceipt(int campaignId, int donorId, BigDecimal amount) {
         // Validate amount
         if (amount == null || amount.doubleValue() <= 0) {
             System.err.println("Donation amount must be positive.");
-            return false;
+            return null;
         }
 
-        // Verify the campaign is active
-        Campaign campaign = campaignDAO.getCampaignById(campaignId);
-        if (campaign == null) {
-            System.err.println("Campaign not found.");
-            return false;
-        }
-        if (!"ACTIVE".equals(campaign.getStatus())) {
-            System.err.println("Cannot donate to a non-active campaign.");
-            return false;
-        }
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false);
 
-        // Create and process the donation
-        Donation donation = new Donation(campaignId, donorId, amount);
-        boolean donationSuccess = donationDAO.processDonation(donation);
-
-        if (donationSuccess) {
-            // Update campaign's current funds
-            boolean fundsUpdated = campaignDAO.updateCampaignFunds(campaignId, amount);
-            if (!fundsUpdated) {
-                System.err.println("Warning: Donation recorded but funds update failed.");
+            Campaign campaign = campaignDAO.getCampaignByIdForUpdate(conn, campaignId);
+            if (campaign == null) {
+                System.err.println("Campaign not found.");
+                conn.rollback();
+                return null;
             }
-            return true;
-        }
+            if (!"ACTIVE".equals(campaign.getStatus())) {
+                System.err.println("Cannot donate to a non-active campaign.");
+                conn.rollback();
+                return null;
+            }
 
-        return false;
+            Donation donation = new Donation(campaignId, donorId, amount);
+            donation.setTransactionDate(LocalDateTime.now());
+
+            boolean donationSuccess = donationDAO.processDonation(conn, donation);
+            if (!donationSuccess) {
+                conn.rollback();
+                return null;
+            }
+
+            boolean fundsUpdated = campaignDAO.updateCampaignFunds(conn, campaignId, amount);
+            if (!fundsUpdated) {
+                conn.rollback();
+                return null;
+            }
+
+            conn.commit();
+            return donation;
+        } catch (SQLException e) {
+            System.err.println("Error processing donation transaction: " + e.getMessage());
+            e.printStackTrace();
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    System.err.println("Rollback failed: " + rollbackEx.getMessage());
+                }
+            }
+            return null;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                    System.err.println("Failed to reset auto-commit: " + e.getMessage());
+                }
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    System.err.println("Failed to close connection: " + e.getMessage());
+                }
+            }
+        }
     }
 
     /**
