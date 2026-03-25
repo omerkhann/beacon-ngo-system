@@ -45,27 +45,33 @@ beacon-ngo-system/
 └── README.md
 ```
 
-## Database Setup
+## Setup (One-Time Only)
 
-1. Install SQL Server and create a database named `beacon_db`.
-2. Run the schema script: `sql/schema.sql`.
-3. Add SQL Server JDBC driver JAR (for example `mssql-jdbc-12.8.1.jre11.jar`) to a local `lib/` folder.
-4. Configure connection values using environment variables:
-
-```powershell
-$env:BEACON_DB_URL = "jdbc:sqlserver://localhost:1433;databaseName=beacon_db;encrypt=true;trustServerCertificate=true"
-$env:BEACON_DB_USER = "sa"
-$env:BEACON_DB_PASSWORD = "yourStrongPassword"
-```
+1. **Install SQL Server** and create a database named `beacon_db`.
+2. **Run the schema script**: Open SQL Server Management Studio and execute `sql/schema.sql`.
+3. **Download SQL Server JDBC driver**: Download `mssql-jdbc-12.x.x.jre11.jar` from [Microsoft](https://github.com/microsoft/mssql-jdbc/releases) and save to a local `lib/` folder in the project root.
+4. **Set environment variables** (PowerShell):
+   ```powershell
+   $env:BEACON_DB_URL = "jdbc:sqlserver://localhost:1433;databaseName=beacon_db;encrypt=true;trustServerCertificate=true"
+   $env:BEACON_DB_USER = "sa"
+   $env:BEACON_DB_PASSWORD = "yourStrongPassword"
+   ```
 
 ## How to Run
 
+Simply execute:
+
 ```powershell
-if (Test-Path out) { Remove-Item -Recurse -Force out }
-New-Item -ItemType Directory -Path out | Out-Null
-$files = Get-ChildItem -Path src/main/java -Recurse -Filter *.java | ForEach-Object { $_.FullName }
-javac -cp "lib/*" -d out $files
-java -cp "out;lib/*" com.beacon.Main
+.\run.ps1
+```
+
+That's it! The script will automatically compile and launch the application.
+
+### Other Commands
+
+**Clean build artifacts:**
+```powershell
+.\clean.ps1
 ```
 
 ## License
