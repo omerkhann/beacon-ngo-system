@@ -1,98 +1,80 @@
-# Beacon NGO Management System - Build & Run Script
-# Usage: .\run.ps1
+# Beacon NGO Management System - JavaFX Application Launcher
+# Simple one-command build and run script
 
-Write-Host "Beacon NGO Management System - Compiling and Running..." -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host "Beacon NGO Management System - JavaFX Edition" -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Cyan
 
-# Load local DB settings if present (db.env: KEY=VALUE lines)
+# Step 1: Load database config
 $envFile = "db.env"
 if (Test-Path $envFile) {
     Get-Content $envFile | ForEach-Object {
         $line = $_.Trim()
-        if (-not $line -or $line.StartsWith("#")) {
-            return
-        }
-
+        if (-not $line -or $line.StartsWith("#")) { return }
         $parts = $line -split "=", 2
         if ($parts.Length -eq 2) {
-            $key = $parts[0].Trim()
-            $value = $parts[1].Trim().Trim('"')
-            [Environment]::SetEnvironmentVariable($key, $value, "Process")
+            [Environment]::SetEnvironmentVariable($parts[0].Trim(), $parts[1].Trim().Trim('"'), "Process")
         }
     }
-    Write-Host "Loaded database config from db.env" -ForegroundColor Gray
-} else {
-    Write-Host "db.env not found. Using current environment variables/defaults." -ForegroundColor Gray
+    Write-Host "[OK] Database config loaded" -ForegroundColor Green
 }
 
-# Ensure SQL Server JDBC driver exists
+# Step 2: Find JDBC driver
 $jdbcJar = Get-ChildItem -Path lib -Filter "mssql-jdbc*.jar" -ErrorAction SilentlyContinue |
-    Sort-Object Name -Descending |
-    Select-Object -First 1
+    Sort-Object Name -Descending | Select-Object -First 1
 if (-not $jdbcJar) {
-    Write-Host "Missing JDBC driver in lib/. Expected a file like mssql-jdbc-<version>.jar" -ForegroundColor Red
-    Write-Host "Download and place the jar in lib/ before running." -ForegroundColor Yellow
+    Write-Host "[ERROR] JDBC driver not found in lib/ folder" -ForegroundColor Red
     exit 1
 }
-Write-Host "Using JDBC jar: $($jdbcJar.Name)" -ForegroundColor Gray
-$jdbcJarPath = Join-Path "lib" $jdbcJar.Name
+Write-Host "[OK] Found JDBC: $($jdbcJar.Name)" -ForegroundColor Green
 
-$usingIntegratedAuth = ($env:BEACON_DB_URL -match "integratedSecurity=true")
-if ($usingIntegratedAuth) {
-    $authDll = Get-ChildItem -Path lib -Filter "mssql-jdbc_auth*.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not $authDll) {
-        Write-Host "Windows Authentication is enabled, but no SQL JDBC auth DLL was found in lib/." -ForegroundColor Red
-        Write-Host "Copy mssql-jdbc_auth-<version>-x64.dll into lib/ and run again." -ForegroundColor Yellow
-        exit 1
-    }
+# Step 3: Find JavaFX SDK (prefer 21.0.9 for Java 21 compatibility)
+$javafxBase = Get-ChildItem -Path lib -Directory -Filter "javafx-*" -ErrorAction SilentlyContinue |
+    Sort-Object Name | Select-Object -First 1
+if (-not $javafxBase) {
+    Write-Host "[ERROR] JavaFX SDK not found in lib/ folder" -ForegroundColor Red
+    exit 1
+}
+$JAVAFX = Get-ChildItem -Path $javafxBase.FullName -Directory -Filter "javafx-sdk-*" -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+if (-not $JAVAFX) {
+    $JAVAFX = $javafxBase
 } else {
-    if ([string]::IsNullOrWhiteSpace($env:BEACON_DB_USER)) {
-        $inputUser = Read-Host "Enter SQL Server username"
-        [Environment]::SetEnvironmentVariable("BEACON_DB_USER", $inputUser, "Process")
-    }
-
-    if ([string]::IsNullOrWhiteSpace($env:BEACON_DB_PASSWORD)) {
-        $securePassword = Read-Host "Enter SQL Server password" -AsSecureString
-        $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
-        $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
-        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
-        [Environment]::SetEnvironmentVariable("BEACON_DB_PASSWORD", $plainPassword, "Process")
-    }
+    $JAVAFX = $JAVAFX.FullName
 }
-
-# Clean previous build
-if (Test-Path out) {
-    Remove-Item -Recurse -Force out
-    Write-Host "Cleaned previous build artifacts." -ForegroundColor Gray
+if (-not (Test-Path "$JAVAFX\lib")) {
+    Write-Host "[ERROR] JavaFX lib folder not found at: $JAVAFX\lib" -ForegroundColor Red
+    exit 1
 }
+Write-Host "[OK] Found JavaFX: $($javafxBase.Name)" -ForegroundColor Green
 
-# Create output directory
+# Step 4: Compile
+Write-Host "`n[STEP] Compiling Java sources..." -ForegroundColor Yellow
+Remove-Item -Path "out" -Recurse -Force -ErrorAction SilentlyContinue | Out-Null
 New-Item -ItemType Directory -Path out | Out-Null
 
-# Compile
-Write-Host "Compiling Java sources..." -ForegroundColor Yellow
-$files = Get-ChildItem -Path src/main/java -Recurse -Filter *.java | ForEach-Object { $_.FullName }
-javac -cp $jdbcJarPath -d out $files
+$files = Get-ChildItem -Path "src/main/java" -Recurse -Filter "*.java" | ForEach-Object { $_.FullName }
+$jdbcPath = Join-Path "lib" $jdbcJar.Name
+& javac --module-path "$JAVAFX\lib" --add-modules javafx.controls,javafx.fxml -cp "$jdbcPath;." -d out $files
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Compilation failed. Check errors above." -ForegroundColor Red
+    Write-Host "[ERROR] Compilation failed" -ForegroundColor Red
     exit 1
 }
+Write-Host "[OK] Compilation successful" -ForegroundColor Green
 
-Write-Host "Compilation successful." -ForegroundColor Green
+# Step 5: Copy CSS resources
+New-Item -ItemType Directory -Path "out\styles" -Force -ErrorAction SilentlyContinue | Out-Null
+Copy-Item "src\main\resources\styles\beacon.css" "out\styles\" -Force -ErrorAction SilentlyContinue
+Write-Host "[OK] Resources copied" -ForegroundColor Green
 
-# Run
-Write-Host "Launching Beacon application..." -ForegroundColor Yellow
-Write-Host "DB URL: $($env:BEACON_DB_URL)" -ForegroundColor Gray
-Write-Host "DB User: $($env:BEACON_DB_USER)" -ForegroundColor Gray
-if ($usingIntegratedAuth) {
-    $javaArgs = @("-Djava.library.path=lib", "-cp", "out;$jdbcJarPath", "com.beacon.Main")
-    & java @javaArgs
-} else {
-    $javaArgs = @("-cp", "out;$jdbcJarPath", "com.beacon.Main")
-    & java @javaArgs
-}
+# Step 6: Launch
+Write-Host "`n[STEP] Launching Beacon application..." -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Cyan
+
+& java --module-path "$JAVAFX\lib" --add-modules javafx.controls,javafx.fxml -cp "out;$jdbcPath" com.beacon.ui.MainFrame
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Runtime error. Ensure SQL Server is running and Database is configured." -ForegroundColor Red
+    Write-Host "[ERROR] Runtime error occurred" -ForegroundColor Red
     exit 1
 }

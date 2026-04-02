@@ -10,20 +10,27 @@ import com.beacon.service.DonationService;
 import com.beacon.service.ExpenseService;
 import com.beacon.service.ImpactReportService;
 import com.beacon.service.VolunteerApplicationService;
+import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.stage.Stage;
 
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Swing application frame for Sprint 1 features.
  */
-public class MainFrame extends JFrame {
+public class MainFrame extends Application {
 
     private final CampaignService campaignService = new CampaignService();
     private final DonationService donationService = new DonationService();
@@ -31,63 +38,73 @@ public class MainFrame extends JFrame {
     private final VolunteerApplicationService volunteerApplicationService = new VolunteerApplicationService();
     private final ImpactReportService impactReportService = new ImpactReportService();
 
-    private JTextField campaignNameField;
-    private JTextArea campaignDescriptionArea;
-    private JTextField campaignGoalField;
-    private JTextField campaignDeadlineField;
-    private JTextField campaignCreatedByField;
+    private TextField campaignNameField;
+    private TextArea campaignDescriptionArea;
+    private TextField campaignGoalField;
+    private TextField campaignDeadlineField;
+    private TextField campaignCreatedByField;
 
-    private JComboBox<String> dashboardStatusFilter;
-    private DefaultTableModel dashboardTableModel;
+    private ComboBox<String> dashboardStatusFilter;
+    private TableView<CampaignRow> dashboardTable;
+    private ObservableList<CampaignRow> dashboardData;
 
-    private JTextField donorIdField;
-    private JTextField donationAmountField;
-    private DefaultTableModel donationCampaignTableModel;
-    private JTable donationCampaignTable;
-    private JTextArea receiptArea;
-    private DefaultTableModel historyTableModel;
+    private TextField donorIdField;
+    private TextField donationAmountField;
+    private TableView<CampaignRow> donationCampaignTable;
+    private ObservableList<CampaignRow> donationCampaignData;
+    private TextArea receiptArea;
+    private TableView<DonationHistoryRow> historyTable;
+    private ObservableList<DonationHistoryRow> donationHistoryData;
 
-    private JComboBox<String> expenseCampaignCombo;
-    private JComboBox<String> expenseCategoryCombo;
-    private JTextField expenseAmountField;
-    private JTextArea expenseDescriptionArea;
-    private JTextField expenseAdminIdField;
-    private JLabel expenseRemainingLabel;
+    private ComboBox<String> expenseCampaignCombo;
+    private ComboBox<String> expenseCategoryCombo;
+    private TextField expenseAmountField;
+    private TextArea expenseDescriptionArea;
+    private TextField expenseAdminIdField;
+    private Label expenseRemainingLabel;
 
-    private JTextField volunteerIdField;
-    private JComboBox<String> volunteerCampaignCombo;
-    private JComboBox<String> volunteerSkillCombo;
-    private JTextArea volunteerBioArea;
+    private TextField volunteerIdField;
+    private ComboBox<String> volunteerCampaignCombo;
+    private ComboBox<String> volunteerSkillCombo;
+    private TextArea volunteerBioArea;
 
-    private JComboBox<String> applicationFilterCombo;
-    private JTextField reviewAdminIdField;
-    private JTextField rejectionReasonField;
-    private DefaultTableModel applicationTableModel;
-    private JTable applicationTable;
+    private ComboBox<String> applicationFilterCombo;
+    private TextField reviewAdminIdField;
+    private TextField rejectionReasonField;
+    private TableView<ApplicationRow> applicationTable;
+    private ObservableList<ApplicationRow> applicationData;
 
-    private DefaultTableModel impactTableModel;
-    private JTable impactTable;
-    private JProgressBar impactProgressBar;
-    private JLabel impactSummaryLabel;
+    private TableView<ImpactRow> impactTable;
+    private ObservableList<ImpactRow> impactData;
+    private ProgressBar impactProgressBar;
+    private Label impactSummaryLabel;
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final String STYLESHEET = "/styles/beacon.css";
 
-    public MainFrame() {
-        setTitle("Beacon NGO Management System - Sprint 1");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1080, 760);
-        setLocationRelativeTo(null);
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Beacon NGO Management System - Sprint 2");
+        primaryStage.setWidth(1200);
+        primaryStage.setHeight(800);
 
-        JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("US1 - Create Campaign", buildCampaignFormPanel());
-        tabs.addTab("US2 - Campaign Dashboard", buildDashboardPanel());
-        tabs.addTab("US3/US4 - Donations", buildDonationPanel());
-        tabs.addTab("US5 - Expense Log", buildExpensePanel());
-        tabs.addTab("US6 - Volunteer Apply", buildVolunteerApplyPanel());
-        tabs.addTab("US7 - Admin Approvals", buildApprovalPanel());
-        tabs.addTab("US8 - Impact Report", buildImpactReportPanel());
+        TabPane tabPane = new TabPane();
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        tabPane.getTabs().addAll(
+                createTab("US1 - Create Campaign", buildCampaignFormPanel()),
+                createTab("US2 - Campaign Dashboard", buildDashboardPanel()),
+                createTab("US3/US4 - Donations", buildDonationPanel()),
+                createTab("US5 - Expense Log", buildExpensePanel()),
+                createTab("US6 - Volunteer Apply", buildVolunteerApplyPanel()),
+                createTab("US7 - Admin Approvals", buildApprovalPanel()),
+                createTab("US8 - Impact Report", buildImpactReportPanel()));
 
-        add(tabs);
+        Scene scene = new Scene(tabPane);
+        String stylesheet = Objects.requireNonNull(getClass().getResource(STYLESHEET)).toExternalForm();
+        scene.getStylesheets().add(stylesheet);
+
+        primaryStage.setScene(scene);
+        primaryStage.show();
 
         refreshDashboardCampaigns();
         refreshDonationCampaigns();
@@ -97,287 +114,253 @@ public class MainFrame extends JFrame {
         refreshImpactReport();
     }
 
-    private JPanel buildCampaignFormPanel() {
-        JPanel panel = new JPanel(new BorderLayout(12, 12));
-        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
-
-        JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
-
-        campaignNameField = new JTextField();
-        campaignDescriptionArea = new JTextArea(4, 20);
-        campaignDescriptionArea.setLineWrap(true);
-        campaignDescriptionArea.setWrapStyleWord(true);
-        campaignGoalField = new JTextField();
-        campaignDeadlineField = new JTextField("2026-12-31");
-        campaignCreatedByField = new JTextField("1");
-
-        formPanel.add(new JLabel("Campaign Name:"));
-        formPanel.add(campaignNameField);
-        formPanel.add(new JLabel("Description:"));
-        formPanel.add(new JScrollPane(campaignDescriptionArea));
-        formPanel.add(new JLabel("Goal Amount (PKR):"));
-        formPanel.add(campaignGoalField);
-        formPanel.add(new JLabel("Deadline (YYYY-MM-DD):"));
-        formPanel.add(campaignDeadlineField);
-        formPanel.add(new JLabel("Created By (Admin User ID):"));
-        formPanel.add(campaignCreatedByField);
-
-        JButton createButton = new JButton("Create Campaign");
-        createButton.addActionListener(e -> handleCreateCampaign());
-
-        panel.add(new JLabel("Admin Campaign Input Form"), BorderLayout.NORTH);
-        panel.add(formPanel, BorderLayout.CENTER);
-        panel.add(createButton, BorderLayout.SOUTH);
-
-        return panel;
+    private Tab createTab(String title, Region content) {
+        Tab tab = new Tab(title, content);
+        tab.setStyle("-fx-text-fill: #3C4B5A;");
+        return tab;
     }
 
-    private JPanel buildDashboardPanel() {
-        JPanel panel = new JPanel(new BorderLayout(12, 12));
-        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+    private VBox buildCampaignFormPanel() {
+        VBox mainBox = new VBox(16);
+        mainBox.setPadding(new Insets(20));
+        mainBox.setStyle("-fx-background-color: #F8FAFC;");
 
-        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        dashboardStatusFilter = new JComboBox<>(new String[] { "ALL", "ACTIVE", "COMPLETED", "CANCELLED" });
-        JButton refreshButton = new JButton("Refresh");
-        refreshButton.addActionListener(e -> refreshDashboardCampaigns());
-        controls.add(new JLabel("Status Filter:"));
-        controls.add(dashboardStatusFilter);
-        controls.add(refreshButton);
+        Label titleLabel = new Label("Admin Campaign Input Form");
+        titleLabel.setStyle("-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #3C4B5A;");
 
-        dashboardTableModel = new DefaultTableModel(
-                new String[] { "Campaign ID", "Name", "Goal", "Raised", "Status", "Deadline", "Created By" }, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        JTable dashboardTable = new JTable(dashboardTableModel);
-        dashboardTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        VBox formBox = createRoundedBox(new VBox(12));
+        campaignNameField = createTextField("Enter campaign name");
+        campaignDescriptionArea = createTextArea("Enter campaign description", 4);
+        campaignGoalField = createTextField("0");
+        campaignDeadlineField = createTextField("2026-12-31");
+        campaignCreatedByField = createTextField("1");
 
-        panel.add(controls, BorderLayout.NORTH);
-        panel.add(new JScrollPane(dashboardTable), BorderLayout.CENTER);
-        return panel;
+        formBox.getChildren().addAll(
+                createFormRow("Campaign Name:", campaignNameField),
+                createFormRow("Description:", campaignDescriptionArea),
+                createFormRow("Goal Amount (PKR):", campaignGoalField),
+                createFormRow("Deadline (YYYY-MM-DD):", campaignDeadlineField),
+                createFormRow("Created By (Admin User ID):", campaignCreatedByField));
+
+        Button createButton = createButton("Create Campaign", "accent");
+        createButton.setOnAction(e -> handleCreateCampaign());
+
+        mainBox.getChildren().addAll(titleLabel, new Separator(), formBox, createButton);
+        return mainBox;
     }
 
-    private JPanel buildDonationPanel() {
-        JPanel panel = new JPanel(new BorderLayout(12, 12));
-        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+    private Region buildDashboardPanel() {
+        VBox mainBox = new VBox(16);
+        mainBox.setPadding(new Insets(20));
+        mainBox.setStyle("-fx-background-color: #F8FAFC;");
 
-        JPanel topPanel = new JPanel(new BorderLayout(10, 10));
+        HBox controlsBox = createRoundedBox(new HBox(12));
+        controlsBox.setAlignment(Pos.CENTER_LEFT);
+        dashboardStatusFilter = new ComboBox<>(
+                FXCollections.observableArrayList("ALL", "ACTIVE", "COMPLETED", "CANCELLED"));
+        dashboardStatusFilter.setValue("ALL");
+        Button refreshButton = createButton("Refresh", "primary");
+        refreshButton.setOnAction(e -> refreshDashboardCampaigns());
+        controlsBox.getChildren().addAll(new Label("Status Filter:"), dashboardStatusFilter, refreshButton);
 
-        JPanel donationForm = new JPanel(new GridLayout(0, 2, 10, 10));
-        donorIdField = new JTextField("2");
-        donationAmountField = new JTextField();
-        donationForm.add(new JLabel("Donor ID:"));
-        donationForm.add(donorIdField);
-        donationForm.add(new JLabel("Donation Amount (PKR):"));
-        donationForm.add(donationAmountField);
+        dashboardData = FXCollections.observableArrayList();
+        dashboardTable = createCampaignTable(dashboardData);
 
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JButton refreshCampaignsBtn = new JButton("Refresh Campaigns");
-        refreshCampaignsBtn.addActionListener(e -> refreshDonationCampaigns());
-        JButton donateBtn = new JButton("Donate to Selected Campaign");
-        donateBtn.addActionListener(e -> handleDonation());
-        JButton historyBtn = new JButton("View Donor History");
-        historyBtn.addActionListener(e -> refreshDonationHistory());
+        mainBox.getChildren().addAll(controlsBox, dashboardTable);
+        VBox.setVgrow(dashboardTable, Priority.ALWAYS);
+        return mainBox;
+    }
 
-        actionPanel.add(refreshCampaignsBtn);
-        actionPanel.add(donateBtn);
-        actionPanel.add(historyBtn);
+    private Region buildDonationPanel() {
+        VBox mainBox = new VBox(16);
+        mainBox.setPadding(new Insets(20));
+        mainBox.setStyle("-fx-background-color: #F8FAFC;");
 
-        topPanel.add(donationForm, BorderLayout.CENTER);
-        topPanel.add(actionPanel, BorderLayout.SOUTH);
+        // Form
+        VBox formBox = createRoundedBox(new VBox(12));
+        donorIdField = createTextField("2");
+        donationAmountField = createTextField("0");
+        formBox.getChildren().addAll(
+                createFormRow("Donor ID:", donorIdField),
+                createFormRow("Donation Amount (PKR):", donationAmountField));
 
-        donationCampaignTableModel = new DefaultTableModel(
-                new String[] { "Campaign ID", "Name", "Status", "Goal", "Raised", "Deadline" }, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        donationCampaignTable = new JTable(donationCampaignTableModel);
-        donationCampaignTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        // Buttons
+        HBox actionBox = new HBox(12);
+        actionBox.setStyle("-fx-padding: 12; -fx-background-radius: 8;");
+        Button refreshCampaignsBtn = createButton("Refresh Campaigns", "primary");
+        refreshCampaignsBtn.setOnAction(e -> refreshDonationCampaigns());
+        Button donateBtn = createButton("Donate", "accent");
+        donateBtn.setOnAction(e -> handleDonation());
+        Button historyBtn = createButton("View History", "primary");
+        historyBtn.setOnAction(e -> refreshDonationHistory());
+        actionBox.getChildren().addAll(refreshCampaignsBtn, donateBtn, historyBtn);
 
-        receiptArea = new JTextArea(8, 20);
+        // Tables
+        donationCampaignData = FXCollections.observableArrayList();
+        donationCampaignTable = createCampaignTable(donationCampaignData);
+
+        receiptArea = new TextArea();
+        receiptArea.setWrapText(true);
         receiptArea.setEditable(false);
-        receiptArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
-        receiptArea.setText("Receipt will appear here after donation.\n");
+        receiptArea.setPrefRowCount(6);
+        receiptArea.setStyle(
+                "-fx-control-inner-background: #FFFFFF; -fx-text-fill: #3C4B5A; -fx-font-family: 'Courier New';");
 
-        historyTableModel = new DefaultTableModel(
-                new String[] { "Donation ID", "Campaign ID", "Amount", "Transaction Date", "Receipt Number" }, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        JTable historyTable = new JTable(historyTableModel);
+        donationHistoryData = FXCollections.observableArrayList();
+        historyTable = new TableView<>(donationHistoryData);
+        TableColumn<DonationHistoryRow, Integer> donationIdCol = new TableColumn<>("Donation ID");
+        donationIdCol
+                .setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().donationId));
+        TableColumn<DonationHistoryRow, Integer> campaignIdCol = new TableColumn<>("Campaign ID");
+        campaignIdCol
+                .setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().campaignId));
+        TableColumn<DonationHistoryRow, BigDecimal> amountCol = new TableColumn<>("Amount");
+        amountCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().amount));
+        TableColumn<DonationHistoryRow, String> dateCol = new TableColumn<>("Date");
+        dateCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().date));
+        historyTable.getColumns().addAll(donationIdCol, campaignIdCol, amountCol, dateCol);
 
-        JSplitPane lowerSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                new JScrollPane(receiptArea),
-                new JScrollPane(historyTable));
-        lowerSplit.setResizeWeight(0.35);
+        SplitPane splitPane = new SplitPane(receiptArea, historyTable);
+        splitPane.setDividerPosition(0, 0.35);
 
-        JSplitPane mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                new JScrollPane(donationCampaignTable),
-                lowerSplit);
-        mainSplit.setResizeWeight(0.55);
+        mainBox.getChildren().addAll(formBox, actionBox, new Separator(), donationCampaignTable,
+                new Label("Receipt & History:"), splitPane);
+        VBox.setVgrow(donationCampaignTable, Priority.ALWAYS);
+        VBox.setVgrow(splitPane, Priority.ALWAYS);
 
-        panel.add(topPanel, BorderLayout.NORTH);
-        panel.add(mainSplit, BorderLayout.CENTER);
-        return panel;
+        return mainBox;
     }
 
-    private JPanel buildExpensePanel() {
-        JPanel panel = new JPanel(new BorderLayout(12, 12));
-        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+    private Region buildExpensePanel() {
+        VBox mainBox = new VBox(16);
+        mainBox.setPadding(new Insets(20));
+        mainBox.setStyle("-fx-background-color: #F8FAFC;");
 
-        JPanel form = new JPanel(new GridLayout(0, 2, 10, 10));
-        expenseCampaignCombo = new JComboBox<>();
-        expenseCategoryCombo = new JComboBox<>(
-                new String[] { "Logistics", "Food", "Transport", "Medical", "Operations", "Other" });
-        expenseAmountField = new JTextField();
-        expenseDescriptionArea = new JTextArea(4, 20);
-        expenseDescriptionArea.setLineWrap(true);
-        expenseDescriptionArea.setWrapStyleWord(true);
-        expenseAdminIdField = new JTextField("1");
-        expenseRemainingLabel = new JLabel("Remaining Balance: PKR 0.00");
+        VBox formBox = createRoundedBox(new VBox(12));
+        expenseCampaignCombo = new ComboBox<>();
+        expenseCategoryCombo = new ComboBox<>(
+                FXCollections.observableArrayList("Logistics", "Food", "Transport", "Medical", "Operations", "Other"));
+        expenseAmountField = createTextField("0");
+        expenseDescriptionArea = createTextArea("", 4);
+        expenseAdminIdField = createTextField("1");
+        expenseRemainingLabel = new Label("Remaining Balance: PKR 0.00");
+        expenseRemainingLabel.setStyle("-fx-text-fill: #4CAF50; -fx-font-weight: bold;");
 
-        form.add(new JLabel("Campaign:"));
-        form.add(expenseCampaignCombo);
-        form.add(new JLabel("Category:"));
-        form.add(expenseCategoryCombo);
-        form.add(new JLabel("Amount (PKR):"));
-        form.add(expenseAmountField);
-        form.add(new JLabel("Description:"));
-        form.add(new JScrollPane(expenseDescriptionArea));
-        form.add(new JLabel("Admin ID:"));
-        form.add(expenseAdminIdField);
-        form.add(new JLabel("Remaining:"));
-        form.add(expenseRemainingLabel);
+        formBox.getChildren().addAll(
+                createFormRow("Campaign:", expenseCampaignCombo),
+                createFormRow("Category:", expenseCategoryCombo),
+                createFormRow("Amount (PKR):", expenseAmountField),
+                createFormRow("Description:", expenseDescriptionArea),
+                createFormRow("Admin ID:", expenseAdminIdField),
+                createFormRow("Remaining:", expenseRemainingLabel));
 
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JButton checkRemainingBtn = new JButton("Check Remaining");
-        checkRemainingBtn.addActionListener(e -> refreshRemainingBalance());
-        JButton logExpenseBtn = new JButton("Log Expense");
-        logExpenseBtn.addActionListener(e -> handleLogExpense());
-        buttons.add(checkRemainingBtn);
-        buttons.add(logExpenseBtn);
+        HBox buttonBox = new HBox(12);
+        buttonBox.setStyle("-fx-padding: 12;");
+        Button checkBtn = createButton("Check Remaining", "primary");
+        checkBtn.setOnAction(e -> refreshRemainingBalance());
+        Button logBtn = createButton("Log Expense", "accent");
+        logBtn.setOnAction(e -> handleLogExpense());
+        buttonBox.getChildren().addAll(checkBtn, logBtn);
 
-        panel.add(form, BorderLayout.CENTER);
-        panel.add(buttons, BorderLayout.SOUTH);
-        return panel;
+        mainBox.getChildren().addAll(formBox, buttonBox);
+        return mainBox;
     }
 
-    private JPanel buildVolunteerApplyPanel() {
-        JPanel panel = new JPanel(new BorderLayout(12, 12));
-        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+    private Region buildVolunteerApplyPanel() {
+        VBox mainBox = new VBox(16);
+        mainBox.setPadding(new Insets(20));
+        mainBox.setStyle("-fx-background-color: #F8FAFC;");
 
-        JPanel form = new JPanel(new GridLayout(0, 2, 10, 10));
-        volunteerIdField = new JTextField("4");
-        volunteerCampaignCombo = new JComboBox<>();
-        volunteerSkillCombo = new JComboBox<>(
-                new String[] { "Teaching", "Medical", "Logistics", "IT", "Outreach", "Design" });
-        volunteerBioArea = new JTextArea(5, 20);
-        volunteerBioArea.setLineWrap(true);
-        volunteerBioArea.setWrapStyleWord(true);
+        VBox formBox = createRoundedBox(new VBox(12));
+        volunteerIdField = createTextField("4");
+        volunteerCampaignCombo = new ComboBox<>();
+        volunteerSkillCombo = new ComboBox<>(
+                FXCollections.observableArrayList("Teaching", "Medical", "Logistics", "IT", "Outreach", "Design"));
+        volunteerBioArea = createTextArea("", 5);
 
-        form.add(new JLabel("Volunteer User ID:"));
-        form.add(volunteerIdField);
-        form.add(new JLabel("Campaign:"));
-        form.add(volunteerCampaignCombo);
-        form.add(new JLabel("Primary Skill:"));
-        form.add(volunteerSkillCombo);
-        form.add(new JLabel("Bio / Interest Statement:"));
-        form.add(new JScrollPane(volunteerBioArea));
+        formBox.getChildren().addAll(
+                createFormRow("Volunteer User ID:", volunteerIdField),
+                createFormRow("Campaign:", volunteerCampaignCombo),
+                createFormRow("Primary Skill:", volunteerSkillCombo),
+                createFormRow("Bio / Interest Statement:", volunteerBioArea));
 
-        JButton applyBtn = new JButton("Apply to Campaign");
-        applyBtn.addActionListener(e -> handleVolunteerApply());
+        Button applyBtn = createButton("Apply to Campaign", "accent");
+        applyBtn.setOnAction(e -> handleVolunteerApply());
 
-        panel.add(form, BorderLayout.CENTER);
-        panel.add(applyBtn, BorderLayout.SOUTH);
-        return panel;
+        mainBox.getChildren().addAll(formBox, applyBtn);
+        return mainBox;
     }
 
-    private JPanel buildApprovalPanel() {
-        JPanel panel = new JPanel(new BorderLayout(12, 12));
-        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+    private Region buildApprovalPanel() {
+        VBox mainBox = new VBox(16);
+        mainBox.setPadding(new Insets(20));
+        mainBox.setStyle("-fx-background-color: #F8FAFC;");
 
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        applicationFilterCombo = new JComboBox<>(new String[] { "PENDING", "ALL", "APPROVED", "REJECTED" });
-        JButton refreshBtn = new JButton("Refresh");
-        refreshBtn.addActionListener(e -> refreshApplications());
-        top.add(new JLabel("Status Filter:"));
-        top.add(applicationFilterCombo);
-        top.add(refreshBtn);
+        HBox topBox = createRoundedBox(new HBox(12));
+        topBox.setAlignment(Pos.CENTER_LEFT);
+        applicationFilterCombo = new ComboBox<>(
+                FXCollections.observableArrayList("PENDING", "ALL", "APPROVED", "REJECTED"));
+        applicationFilterCombo.setValue("PENDING");
+        Button refreshBtn = createButton("Refresh", "primary");
+        refreshBtn.setOnAction(e -> refreshApplications());
+        topBox.getChildren().addAll(new Label("Status Filter:"), applicationFilterCombo, refreshBtn);
 
-        applicationTableModel = new DefaultTableModel(
-                new String[] { "Application ID", "Campaign", "Volunteer", "Skill", "Bio", "Status", "Rejection Reason",
-                        "Reviewed By" },
-                0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        applicationTable = new JTable(applicationTableModel);
-        applicationTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        applicationData = FXCollections.observableArrayList();
+        applicationTable = new TableView<>(applicationData);
+        setupApplicationTable(applicationTable);
 
-        JPanel bottom = new JPanel(new GridLayout(0, 2, 10, 10));
-        reviewAdminIdField = new JTextField("1");
-        rejectionReasonField = new JTextField();
-        JButton approveBtn = new JButton("Approve Selected");
-        approveBtn.addActionListener(e -> handleApproveApplication());
-        JButton rejectBtn = new JButton("Reject Selected");
-        rejectBtn.addActionListener(e -> handleRejectApplication());
+        VBox bottomBox = createRoundedBox(new VBox(12));
+        reviewAdminIdField = createTextField("1");
+        rejectionReasonField = createTextField("");
 
-        bottom.add(new JLabel("Admin Reviewer ID:"));
-        bottom.add(reviewAdminIdField);
-        bottom.add(new JLabel("Rejection Reason:"));
-        bottom.add(rejectionReasonField);
-        bottom.add(approveBtn);
-        bottom.add(rejectBtn);
+        bottomBox.getChildren().addAll(
+                createFormRow("Admin Reviewer ID:", reviewAdminIdField),
+                createFormRow("Rejection Reason:", rejectionReasonField));
 
-        panel.add(top, BorderLayout.NORTH);
-        panel.add(new JScrollPane(applicationTable), BorderLayout.CENTER);
-        panel.add(bottom, BorderLayout.SOUTH);
-        return panel;
+        HBox buttonBox = new HBox(12);
+        buttonBox.setStyle("-fx-padding: 0 0 12 0;");
+        Button approveBtn = createButton("Approve", "accent");
+        approveBtn.setOnAction(e -> handleApproveApplication());
+        Button rejectBtn = createButton("Reject", "danger");
+        rejectBtn.setOnAction(e -> handleRejectApplication());
+        buttonBox.getChildren().addAll(approveBtn, rejectBtn);
+        bottomBox.getChildren().add(buttonBox);
+
+        mainBox.getChildren().addAll(topBox, applicationTable, bottomBox);
+        VBox.setVgrow(applicationTable, Priority.ALWAYS);
+        return mainBox;
     }
 
-    private JPanel buildImpactReportPanel() {
-        JPanel panel = new JPanel(new BorderLayout(12, 12));
-        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+    private Region buildImpactReportPanel() {
+        VBox mainBox = new VBox(16);
+        mainBox.setPadding(new Insets(20));
+        mainBox.setStyle("-fx-background-color: #F8FAFC;");
 
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JButton refreshBtn = new JButton("Refresh Report");
-        refreshBtn.addActionListener(e -> refreshImpactReport());
-        top.add(refreshBtn);
+        HBox topBox = createRoundedBox(new HBox(12));
+        topBox.setAlignment(Pos.CENTER_LEFT);
+        Button refreshBtn = createButton("Refresh Report", "primary");
+        refreshBtn.setOnAction(e -> refreshImpactReport());
+        topBox.getChildren().add(refreshBtn);
 
-        impactTableModel = new DefaultTableModel(
-                new String[] { "Campaign ID", "Campaign", "Goal", "Total Raised", "Total Expenses", "Net Funds",
-                        "Progress %" },
-                0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
+        impactData = FXCollections.observableArrayList();
+        impactTable = new TableView<>(impactData);
+        setupImpactTable(impactTable);
 
-        impactTable = new JTable(impactTableModel);
-        impactTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        impactTable.getSelectionModel().addListSelectionListener(e -> updateImpactProgressFromSelection());
+        VBox bottomBox = createRoundedBox(new VBox(12));
+        bottomBox.setPadding(new Insets(12));
+        impactProgressBar = new ProgressBar(0);
+        impactProgressBar.setPrefHeight(30);
+        impactProgressBar.setStyle("-fx-accent: #4CAF50;");
+        impactSummaryLabel = new Label("Select a campaign to view progress summary.");
+        impactSummaryLabel.setStyle("-fx-text-fill: #3C4B5A; -fx-font-size: 12;");
+        bottomBox.getChildren().addAll(impactProgressBar, impactSummaryLabel);
 
-        JPanel bottom = new JPanel(new BorderLayout(8, 8));
-        impactProgressBar = new JProgressBar(0, 100);
-        impactProgressBar.setStringPainted(true);
-        impactSummaryLabel = new JLabel("Select a campaign to view progress summary.");
-        bottom.add(impactProgressBar, BorderLayout.NORTH);
-        bottom.add(impactSummaryLabel, BorderLayout.CENTER);
-
-        panel.add(top, BorderLayout.NORTH);
-        panel.add(new JScrollPane(impactTable), BorderLayout.CENTER);
-        panel.add(bottom, BorderLayout.SOUTH);
-        return panel;
+        mainBox.getChildren().addAll(topBox, impactTable, bottomBox);
+        VBox.setVgrow(impactTable, Priority.ALWAYS);
+        return mainBox;
     }
+
+    // ======================== HANDLERS ========================
 
     private void handleCreateCampaign() {
         try {
@@ -391,88 +374,219 @@ public class MainFrame extends JFrame {
             boolean success = campaignService.createCampaign(campaign);
 
             if (success) {
-                JOptionPane.showMessageDialog(this, "Campaign created successfully.", "Success",
-                        JOptionPane.INFORMATION_MESSAGE);
-                campaignNameField.setText("");
-                campaignDescriptionArea.setText("");
-                campaignGoalField.setText("");
+                showAlert("Success", "Campaign created successfully.", Alert.AlertType.INFORMATION);
+                campaignNameField.clear();
+                campaignDescriptionArea.clear();
+                campaignGoalField.clear();
                 refreshDashboardCampaigns();
                 refreshDonationCampaigns();
             } else {
-                JOptionPane.showMessageDialog(this, "Campaign creation failed. Check inputs and DB status.", "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                showAlert("Error", "Campaign creation failed. Check inputs and DB status.", Alert.AlertType.ERROR);
             }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Invalid form input. Use numeric goal, valid admin ID, and date format yyyy-MM-dd.",
-                    "Validation Error", JOptionPane.WARNING_MESSAGE);
+            showAlert("Validation Error", "Invalid form input. Use numeric goal and date format yyyy-MM-dd.",
+                    Alert.AlertType.WARNING);
         }
     }
 
-    private void refreshDashboardCampaigns() {
-        dashboardTableModel.setRowCount(0);
-        String selectedStatus = (String) dashboardStatusFilter.getSelectedItem();
+    private void handleDonation() {
+        int selectedIdx = donationCampaignTable.getSelectionModel().getSelectedIndex();
+        if (selectedIdx < 0) {
+            showAlert("No Campaign Selected", "Select a campaign row first.", Alert.AlertType.WARNING);
+            return;
+        }
 
+        try {
+            CampaignRow campaign = donationCampaignData.get(selectedIdx);
+            int campaignId = campaign.campaignId;
+            int donorId = Integer.parseInt(donorIdField.getText().trim());
+            BigDecimal amount = new BigDecimal(donationAmountField.getText().trim());
+
+            Donation donation = donationService.processDonationWithReceipt(campaignId, donorId, amount);
+            if (donation == null) {
+                showAlert("Donation Failed", "Confirm campaign is ACTIVE, donor ID exists, and DB is reachable.",
+                        Alert.AlertType.ERROR);
+                return;
+            }
+
+            String receiptText = buildReceiptText(donation, donorId);
+            receiptArea.setText(receiptText);
+            showAlert("Success", "Donation Receipt:\n\n" + receiptText, Alert.AlertType.INFORMATION);
+
+            donationAmountField.clear();
+            refreshDashboardCampaigns();
+            refreshDonationCampaigns();
+            refreshDonationHistory();
+        } catch (Exception ex) {
+            showAlert("Validation Error", "Invalid donation input. Donor ID and amount must be valid numbers.",
+                    Alert.AlertType.WARNING);
+        }
+    }
+
+    private void handleLogExpense() {
+        try {
+            String selection = expenseCampaignCombo.getValue();
+            if (selection == null) {
+                showAlert("Validation Error", "Select a campaign first.", Alert.AlertType.WARNING);
+                return;
+            }
+
+            Integer campaignId = Integer.parseInt(selection.split(" - ")[0]);
+            Expense expense = new Expense();
+            expense.setCampaignId(campaignId);
+            expense.setCreatedBy(Integer.parseInt(expenseAdminIdField.getText().trim()));
+            expense.setCategory(expenseCategoryCombo.getValue());
+            expense.setDescription(expenseDescriptionArea.getText().trim());
+            expense.setAmount(new BigDecimal(expenseAmountField.getText().trim()));
+
+            boolean success = expenseService.logExpense(expense);
+            if (!success) {
+                showAlert("Expense Failed", "Check amount and remaining balance.", Alert.AlertType.ERROR);
+                return;
+            }
+
+            showAlert("Success", "Expense logged successfully.", Alert.AlertType.INFORMATION);
+            expenseAmountField.clear();
+            expenseDescriptionArea.clear();
+            refreshRemainingBalance();
+            refreshImpactReport();
+        } catch (Exception ex) {
+            showAlert("Validation Error", "Invalid expense input.", Alert.AlertType.WARNING);
+        }
+    }
+
+    private void handleVolunteerApply() {
+        try {
+            String selection = volunteerCampaignCombo.getValue();
+            if (selection == null) {
+                showAlert("Validation Error", "Select a campaign first.", Alert.AlertType.WARNING);
+                return;
+            }
+
+            Integer campaignId = Integer.parseInt(selection.split(" - ")[0]);
+            VolunteerApplication application = new VolunteerApplication();
+            application.setCampaignId(campaignId);
+            application.setVolunteerId(Integer.parseInt(volunteerIdField.getText().trim()));
+            application.setSkill(volunteerSkillCombo.getValue());
+            application.setBio(volunteerBioArea.getText().trim());
+
+            boolean success = volunteerApplicationService.applyToCampaign(application);
+            if (!success) {
+                showAlert("Submission Failed", "Ensure required fields are entered.", Alert.AlertType.ERROR);
+                return;
+            }
+
+            showAlert("Success", "Application submitted successfully.", Alert.AlertType.INFORMATION);
+            volunteerBioArea.clear();
+            refreshApplications();
+        } catch (Exception ex) {
+            showAlert("Validation Error", "Volunteer ID must be numeric.", Alert.AlertType.WARNING);
+        }
+    }
+
+    private void handleApproveApplication() {
+        ApplicationRow selected = applicationTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Validation Error", "Select an application first.", Alert.AlertType.WARNING);
+            return;
+        }
+
+        try {
+            int adminId = Integer.parseInt(reviewAdminIdField.getText().trim());
+            boolean success = volunteerApplicationService.approveApplication(selected.applicationId, adminId);
+            if (!success) {
+                showAlert("Error", "Approval failed.", Alert.AlertType.ERROR);
+                return;
+            }
+
+            refreshApplications();
+            showAlert("Success", "Application approved.", Alert.AlertType.INFORMATION);
+        } catch (Exception ex) {
+            showAlert("Validation Error", "Invalid admin ID.", Alert.AlertType.WARNING);
+        }
+    }
+
+    private void handleRejectApplication() {
+        ApplicationRow selected = applicationTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Validation Error", "Select an application first.", Alert.AlertType.WARNING);
+            return;
+        }
+
+        try {
+            int adminId = Integer.parseInt(reviewAdminIdField.getText().trim());
+            String reason = rejectionReasonField.getText().trim();
+
+            boolean success = volunteerApplicationService.rejectApplication(selected.applicationId, reason, adminId);
+            if (!success) {
+                showAlert("Error", "Rejection failed. Reason is required.", Alert.AlertType.ERROR);
+                return;
+            }
+
+            rejectionReasonField.clear();
+            refreshApplications();
+            showAlert("Success", "Application rejected.", Alert.AlertType.INFORMATION);
+        } catch (Exception ex) {
+            showAlert("Validation Error", "Invalid admin ID.", Alert.AlertType.WARNING);
+        }
+    }
+
+    // ======================== REFRESH METHODS ========================
+
+    private void refreshDashboardCampaigns() {
+        dashboardData.clear();
+        String selectedStatus = dashboardStatusFilter.getValue();
         List<Campaign> campaigns = "ALL".equals(selectedStatus)
                 ? campaignService.getAllCampaigns()
                 : campaignService.getCampaignsByStatus(selectedStatus);
 
         for (Campaign c : campaigns) {
-            dashboardTableModel.addRow(new Object[] {
-                    c.getCampaignId(),
-                    c.getName(),
-                    c.getGoalAmount(),
-                    c.getCurrentFunds(),
-                    c.getStatus(),
-                    c.getDeadline(),
-                    c.getCreatedBy()
-            });
+            dashboardData.add(new CampaignRow(c.getCampaignId(), c.getName(), c.getGoalAmount().toString(),
+                    c.getCurrentFunds().toString(), c.getStatus(), c.getDeadline().toString(),
+                    String.valueOf(c.getCreatedBy())));
         }
     }
 
     private void refreshDonationCampaigns() {
-        donationCampaignTableModel.setRowCount(0);
+        donationCampaignData.clear();
         List<Campaign> campaigns = campaignService.getAllCampaigns();
 
         for (Campaign c : campaigns) {
-            donationCampaignTableModel.addRow(new Object[] {
-                    c.getCampaignId(),
-                    c.getName(),
-                    c.getStatus(),
-                    c.getGoalAmount(),
-                    c.getCurrentFunds(),
-                    c.getDeadline()
-            });
+            donationCampaignData.add(new CampaignRow(c.getCampaignId(), c.getName(), c.getStatus(),
+                    c.getGoalAmount().toString(), c.getCurrentFunds().toString(), c.getDeadline().toString()));
         }
     }
 
     private void refreshExpenseCampaigns() {
-        expenseCampaignCombo.removeAllItems();
+        ObservableList<String> items = FXCollections.observableArrayList();
         List<Campaign> campaigns = campaignService.getAllCampaigns();
-        for (Campaign campaign : campaigns) {
-            expenseCampaignCombo.addItem(campaign.getCampaignId() + " - " + campaign.getName());
+        for (Campaign c : campaigns) {
+            items.add(c.getCampaignId() + " - " + c.getName());
         }
+        expenseCampaignCombo.setItems(items);
         refreshRemainingBalance();
     }
 
     private void refreshVolunteerCampaigns() {
-        volunteerCampaignCombo.removeAllItems();
+        ObservableList<String> items = FXCollections.observableArrayList();
         List<Campaign> campaigns = campaignService.getAllCampaigns();
-        for (Campaign campaign : campaigns) {
-            if ("ACTIVE".equalsIgnoreCase(campaign.getStatus())) {
-                volunteerCampaignCombo.addItem(campaign.getCampaignId() + " - " + campaign.getName());
+        for (Campaign c : campaigns) {
+            if ("ACTIVE".equalsIgnoreCase(c.getStatus())) {
+                items.add(c.getCampaignId() + " - " + c.getName());
             }
         }
+        volunteerCampaignCombo.setItems(items);
     }
 
     private void refreshRemainingBalance() {
         try {
-            Integer campaignId = getSelectedCampaignId(expenseCampaignCombo);
-            if (campaignId == null) {
+            String selection = expenseCampaignCombo.getValue();
+            if (selection == null) {
                 expenseRemainingLabel.setText("Remaining Balance: PKR 0.00");
                 return;
             }
 
+            Integer campaignId = Integer.parseInt(selection.split(" - ")[0]);
             BigDecimal remaining = expenseService.getRemainingBalance(campaignId);
             expenseRemainingLabel.setText("Remaining Balance: PKR " + remaining);
         } catch (Exception ex) {
@@ -480,262 +594,166 @@ public class MainFrame extends JFrame {
         }
     }
 
-    private void handleLogExpense() {
-        try {
-            Integer campaignId = getSelectedCampaignId(expenseCampaignCombo);
-            if (campaignId == null) {
-                JOptionPane.showMessageDialog(this, "Select a campaign first.", "Validation Error",
-                        JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            Expense expense = new Expense();
-            expense.setCampaignId(campaignId);
-            expense.setCreatedBy(Integer.parseInt(expenseAdminIdField.getText().trim()));
-            expense.setCategory((String) expenseCategoryCombo.getSelectedItem());
-            expense.setDescription(expenseDescriptionArea.getText().trim());
-            expense.setAmount(new BigDecimal(expenseAmountField.getText().trim()));
-
-            boolean success = expenseService.logExpense(expense);
-            if (!success) {
-                JOptionPane.showMessageDialog(this,
-                        "Expense could not be logged. Check amount and remaining balance.",
-                        "Expense Failed", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            JOptionPane.showMessageDialog(this, "Expense logged successfully.", "Success",
-                    JOptionPane.INFORMATION_MESSAGE);
-            expenseAmountField.setText("");
-            expenseDescriptionArea.setText("");
-            refreshRemainingBalance();
-            refreshImpactReport();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Invalid expense input. Ensure admin ID and amount are numeric.",
-                    "Validation Error", JOptionPane.WARNING_MESSAGE);
-        }
-    }
-
-    private void handleVolunteerApply() {
-        try {
-            Integer campaignId = getSelectedCampaignId(volunteerCampaignCombo);
-            if (campaignId == null) {
-                JOptionPane.showMessageDialog(this, "Select a campaign first.", "Validation Error",
-                        JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            VolunteerApplication application = new VolunteerApplication();
-            application.setCampaignId(campaignId);
-            application.setVolunteerId(Integer.parseInt(volunteerIdField.getText().trim()));
-            application.setSkill((String) volunteerSkillCombo.getSelectedItem());
-            application.setBio(volunteerBioArea.getText().trim());
-
-            boolean success = volunteerApplicationService.applyToCampaign(application);
-            if (!success) {
-                JOptionPane.showMessageDialog(this,
-                        "Application failed. Ensure required fields are entered.",
-                        "Submission Failed", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            JOptionPane.showMessageDialog(this, "Application submitted successfully.", "Success",
-                    JOptionPane.INFORMATION_MESSAGE);
-            volunteerBioArea.setText("");
-            refreshApplications();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Invalid volunteer input. Volunteer ID must be numeric.",
-                    "Validation Error", JOptionPane.WARNING_MESSAGE);
-        }
-    }
-
     private void refreshApplications() {
-        applicationTableModel.setRowCount(0);
-        String selectedStatus = (String) applicationFilterCombo.getSelectedItem();
+        applicationData.clear();
+        String selectedStatus = applicationFilterCombo.getValue();
         List<VolunteerApplication> applications = volunteerApplicationService.getApplications(selectedStatus);
 
-        for (VolunteerApplication application : applications) {
-            applicationTableModel.addRow(new Object[] {
-                    application.getApplicationId(),
-                    application.getCampaignId(),
-                    application.getVolunteerId(),
-                    application.getSkill(),
-                    application.getBio(),
-                    application.getStatus(),
-                    application.getRejectionReason(),
-                    application.getReviewedBy()
-            });
-        }
-    }
-
-    private void handleApproveApplication() {
-        int row = applicationTable.getSelectedRow();
-        if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Select an application first.", "Validation Error",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        try {
-            int applicationId = Integer.parseInt(String.valueOf(applicationTableModel.getValueAt(row, 0)));
-            int adminId = Integer.parseInt(reviewAdminIdField.getText().trim());
-            boolean success = volunteerApplicationService.approveApplication(applicationId, adminId);
-            if (!success) {
-                JOptionPane.showMessageDialog(this, "Approval failed.", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            refreshApplications();
-            JOptionPane.showMessageDialog(this, "Application approved.", "Success", JOptionPane.INFORMATION_MESSAGE);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Invalid admin ID.", "Validation Error", JOptionPane.WARNING_MESSAGE);
-        }
-    }
-
-    private void handleRejectApplication() {
-        int row = applicationTable.getSelectedRow();
-        if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Select an application first.", "Validation Error",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        try {
-            int applicationId = Integer.parseInt(String.valueOf(applicationTableModel.getValueAt(row, 0)));
-            int adminId = Integer.parseInt(reviewAdminIdField.getText().trim());
-            String reason = rejectionReasonField.getText().trim();
-
-            boolean success = volunteerApplicationService.rejectApplication(applicationId, reason, adminId);
-            if (!success) {
-                JOptionPane.showMessageDialog(this,
-                        "Rejection failed. Reason is required.",
-                        "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            rejectionReasonField.setText("");
-            refreshApplications();
-            JOptionPane.showMessageDialog(this, "Application rejected.", "Success", JOptionPane.INFORMATION_MESSAGE);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Invalid admin ID.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+        for (VolunteerApplication app : applications) {
+            applicationData.add(new ApplicationRow(app.getApplicationId(), app.getCampaignId(),
+                    app.getVolunteerId(), app.getSkill(), app.getBio(), app.getStatus(),
+                    app.getRejectionReason(), String.valueOf(app.getReviewedBy())));
         }
     }
 
     private void refreshImpactReport() {
-        impactTableModel.setRowCount(0);
+        impactData.clear();
         List<ImpactReportRow> rows = impactReportService.getImpactReportRows();
 
         for (ImpactReportRow row : rows) {
-            impactTableModel.addRow(new Object[] {
-                    row.getCampaignId(),
-                    row.getCampaignName(),
-                    row.getGoalAmount(),
-                    row.getTotalRaised(),
-                    row.getTotalExpenses(),
-                    row.getNetFunds(),
-                    row.getProgressPercent()
-            });
-        }
-
-        updateImpactProgressFromSelection();
-    }
-
-    private void updateImpactProgressFromSelection() {
-        int row = impactTable.getSelectedRow();
-        if (row < 0) {
-            impactProgressBar.setValue(0);
-            impactProgressBar.setString("0%");
-            impactSummaryLabel.setText("Select a campaign to view progress summary.");
-            return;
-        }
-
-        int progress = Integer.parseInt(String.valueOf(impactTableModel.getValueAt(row, 6)));
-        String campaign = String.valueOf(impactTableModel.getValueAt(row, 1));
-        String raised = String.valueOf(impactTableModel.getValueAt(row, 3));
-        String net = String.valueOf(impactTableModel.getValueAt(row, 5));
-
-        impactProgressBar.setValue(progress);
-        impactProgressBar.setString(progress + "%");
-        impactSummaryLabel
-                .setText("Campaign " + campaign + " | Total Raised: PKR " + raised + " | Net Funds: PKR " + net);
-    }
-
-    private Integer getSelectedCampaignId(JComboBox<String> comboBox) {
-        Object selected = comboBox.getSelectedItem();
-        if (selected == null) {
-            return null;
-        }
-
-        String value = selected.toString();
-        String[] parts = value.split(" - ", 2);
-        return Integer.parseInt(parts[0].trim());
-    }
-
-    private void handleDonation() {
-        int selectedRow = donationCampaignTable.getSelectedRow();
-        if (selectedRow < 0) {
-            JOptionPane.showMessageDialog(this, "Select a campaign row first.", "No Campaign Selected",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        try {
-            int campaignId = Integer.parseInt(String.valueOf(donationCampaignTableModel.getValueAt(selectedRow, 0)));
-            int donorId = Integer.parseInt(donorIdField.getText().trim());
-            BigDecimal amount = new BigDecimal(donationAmountField.getText().trim());
-
-            Donation donation = donationService.processDonationWithReceipt(campaignId, donorId, amount);
-            if (donation == null) {
-                JOptionPane.showMessageDialog(this,
-                        "Donation failed. Confirm campaign is ACTIVE, donor ID exists, and DB is reachable.",
-                        "Donation Failed", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            String receiptText = buildReceiptText(donation, donorId);
-            receiptArea.setText(receiptText);
-            JOptionPane.showMessageDialog(this, receiptText, "Donation Receipt", JOptionPane.INFORMATION_MESSAGE);
-
-            donationAmountField.setText("");
-            refreshDashboardCampaigns();
-            refreshDonationCampaigns();
-            refreshDonationHistory();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Invalid donation input. Donor ID and amount must be valid numbers.",
-                    "Validation Error", JOptionPane.WARNING_MESSAGE);
+            impactData.add(new ImpactRow(row.getCampaignId(), row.getCampaignName(),
+                    row.getGoalAmount().toString(), row.getTotalRaised().toString(),
+                    row.getTotalExpenses().toString(), row.getNetFunds().toString(), row.getProgressPercent()));
         }
     }
 
     private void refreshDonationHistory() {
-        historyTableModel.setRowCount(0);
+        donationHistoryData.clear();
 
         try {
             int donorId = Integer.parseInt(donorIdField.getText().trim());
             List<Donation> donations = donationService.getDonationHistory(donorId);
 
             for (Donation d : donations) {
-                historyTableModel.addRow(new Object[] {
-                        d.getDonationId(),
-                        d.getCampaignId(),
-                        d.getAmount(),
-                        d.getTransactionDate(),
-                        d.getReceiptNumber()
-                });
+                donationHistoryData.add(new DonationHistoryRow(d.getDonationId(), d.getCampaignId(),
+                        d.getAmount(), d.getTransactionDate() == null ? "N/A" : d.getTransactionDate().toString()));
             }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Enter a valid Donor ID to view history.", "Validation Error",
-                    JOptionPane.WARNING_MESSAGE);
+            showAlert("Validation Error", "Enter a valid Donor ID to view history.", Alert.AlertType.WARNING);
         }
     }
 
-    private String buildReceiptText(Donation donation, int donorId) {
-        String transactionDate = donation.getTransactionDate() == null
-                ? "N/A"
-                : donation.getTransactionDate().toString();
+    // ======================== UI COMPONENTS ========================
 
+    private TextField createTextField(String prompt) {
+        TextField tf = new TextField();
+        tf.setPromptText(prompt);
+        tf.setStyle("-fx-font-size: 11; -fx-padding: 8;");
+        return tf;
+    }
+
+    private TextArea createTextArea(String prompt, int rows) {
+        TextArea ta = new TextArea();
+        ta.setPromptText(prompt);
+        ta.setPrefRowCount(rows);
+        ta.setWrapText(true);
+        ta.setStyle("-fx-font-size: 11; -fx-padding: 8; -fx-control-inner-background: #FFFFFF;");
+        return ta;
+    }
+
+    private Button createButton(String text, String style) {
+        Button btn = new Button(text);
+        btn.setStyle("-fx-padding: 8 16; -fx-font-size: 11; -fx-font-weight: bold; -fx-cursor: hand;");
+        btn.getStyleClass().add("btn-" + style);
+        return btn;
+    }
+
+    private <T extends Pane> T createRoundedBox(T box) {
+        box.setPadding(new Insets(12));
+        box.setStyle(
+                "-fx-background-color: #FFFFFF; -fx-background-radius: 8; -fx-border-color: #C8D2DC; -fx-border-radius: 8;");
+        return box;
+    }
+
+    private HBox createFormRow(String label, javafx.scene.Node component) {
+        HBox row = new HBox(12);
+        row.setAlignment(Pos.CENTER_LEFT);
+
+        Label lbl = new Label(label);
+        lbl.setStyle("-fx-font-size: 11; -fx-text-fill: #3C4B5A; -fx-min-width: 150;");
+        lbl.setPrefWidth(150);
+
+        if (component instanceof TextArea) {
+            VBox vbox = new VBox(row);
+            vbox.getChildren().add(component);
+            HBox.setHgrow(component, Priority.ALWAYS);
+            row.getChildren().addAll(lbl, component);
+        } else {
+            HBox.setHgrow(component, Priority.ALWAYS);
+            row.getChildren().addAll(lbl, component);
+        }
+
+        return row;
+    }
+
+    private TableView<CampaignRow> createCampaignTable(ObservableList<CampaignRow> data) {
+        TableView<CampaignRow> table = new TableView<>(data);
+        table.setStyle("-fx-font-size: 11;");
+
+        TableColumn<CampaignRow, Integer> idCol = new TableColumn<>("Campaign ID");
+        idCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().campaignId));
+        TableColumn<CampaignRow, String> nameCol = new TableColumn<>("Name");
+        nameCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().name));
+        TableColumn<CampaignRow, String> goalCol = new TableColumn<>("Goal");
+        goalCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().goal));
+        TableColumn<CampaignRow, String> raisedCol = new TableColumn<>("Raised");
+        raisedCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().raised));
+        TableColumn<CampaignRow, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().status));
+
+        table.getColumns().addAll(idCol, nameCol, goalCol, raisedCol, statusCol);
+
+        return table;
+    }
+
+    private void setupApplicationTable(TableView<ApplicationRow> table) {
+        TableColumn<ApplicationRow, Integer> appIdCol = new TableColumn<>("Application ID");
+        appIdCol.setCellValueFactory(
+                cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().applicationId));
+        TableColumn<ApplicationRow, Integer> campaignIdCol = new TableColumn<>("Campaign");
+        campaignIdCol
+                .setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().campaignId));
+        TableColumn<ApplicationRow, Integer> volunteerIdCol = new TableColumn<>("Volunteer");
+        volunteerIdCol
+                .setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().volunteerId));
+        TableColumn<ApplicationRow, String> skillCol = new TableColumn<>("Skill");
+        skillCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().skill));
+        TableColumn<ApplicationRow, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().status));
+
+        table.getColumns().addAll(appIdCol, campaignIdCol, volunteerIdCol, skillCol, statusCol);
+    }
+
+    private void setupImpactTable(TableView<ImpactRow> table) {
+        TableColumn<ImpactRow, Integer> campaignIdCol = new TableColumn<>("Campaign ID");
+        campaignIdCol
+                .setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().campaignId));
+        TableColumn<ImpactRow, String> nameCol = new TableColumn<>("Campaign");
+        nameCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().name));
+        TableColumn<ImpactRow, String> goalCol = new TableColumn<>("Goal");
+        goalCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().goal));
+        TableColumn<ImpactRow, String> raisedCol = new TableColumn<>("Total Raised");
+        raisedCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().raised));
+        TableColumn<ImpactRow, String> expensesCol = new TableColumn<>("Total Expenses");
+        expensesCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().expenses));
+        TableColumn<ImpactRow, String> netCol = new TableColumn<>("Net Funds");
+        netCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().net));
+        TableColumn<ImpactRow, Integer> progressCol = new TableColumn<>("Progress %");
+        progressCol.setCellValueFactory(cf -> new javafx.beans.property.SimpleObjectProperty<>(cf.getValue().progress));
+
+        table.getColumns().addAll(campaignIdCol, nameCol, goalCol, raisedCol, expensesCol, netCol, progressCol);
+        table.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                impactProgressBar.setProgress(newVal.progress / 100.0);
+                impactSummaryLabel.setText(
+                        "Campaign " + newVal.name + " | Raised: PKR " + newVal.raised + " | Net: PKR " + newVal.net);
+            }
+        });
+    }
+
+    private String buildReceiptText(Donation donation, int donorId) {
+        String transactionDate = donation.getTransactionDate() == null ? "N/A"
+                : donation.getTransactionDate().toString();
         return "=========== BEACON RECEIPT ===========\n"
                 + "Receipt Number : " + donation.getReceiptNumber() + "\n"
                 + "Donation ID    : " + donation.getDonationId() + "\n"
@@ -744,5 +762,102 @@ public class MainFrame extends JFrame {
                 + "Amount (PKR)   : " + donation.getAmount() + "\n"
                 + "Date/Time      : " + transactionDate + "\n"
                 + "======================================";
+    }
+
+    private void showAlert(String title, String content, Alert.AlertType type) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+
+    // ======================== DATA CLASSES ========================
+
+    public static class CampaignRow {
+        public int campaignId;
+        public String name;
+        public String goal;
+        public String raised;
+        public String status;
+        public String deadline;
+        public String createdBy;
+
+        public CampaignRow(int campaignId, String name, String goal, String raised, String status, String deadline) {
+            this.campaignId = campaignId;
+            this.name = name;
+            this.goal = goal;
+            this.raised = raised;
+            this.status = status;
+            this.deadline = deadline;
+        }
+
+        public CampaignRow(int campaignId, String name, String goal, String raised, String status, String deadline,
+                String createdBy) {
+            this(campaignId, name, goal, raised, status, deadline);
+            this.createdBy = createdBy;
+        }
+    }
+
+    public static class DonationHistoryRow {
+        public int donationId;
+        public int campaignId;
+        public BigDecimal amount;
+        public String date;
+
+        public DonationHistoryRow(int donationId, int campaignId, BigDecimal amount, String date) {
+            this.donationId = donationId;
+            this.campaignId = campaignId;
+            this.amount = amount;
+            this.date = date;
+        }
+    }
+
+    public static class ApplicationRow {
+        public int applicationId;
+        public int campaignId;
+        public int volunteerId;
+        public String skill;
+        public String bio;
+        public String status;
+        public String rejectionReason;
+        public String reviewedBy;
+
+        public ApplicationRow(int applicationId, int campaignId, int volunteerId, String skill, String bio,
+                String status, String rejectionReason, String reviewedBy) {
+            this.applicationId = applicationId;
+            this.campaignId = campaignId;
+            this.volunteerId = volunteerId;
+            this.skill = skill;
+            this.bio = bio;
+            this.status = status;
+            this.rejectionReason = rejectionReason;
+            this.reviewedBy = reviewedBy;
+        }
+    }
+
+    public static class ImpactRow {
+        public int campaignId;
+        public String name;
+        public String goal;
+        public String raised;
+        public String expenses;
+        public String net;
+        public int progress;
+
+        public ImpactRow(int campaignId, String name, String goal, String raised, String expenses, String net,
+                int progress) {
+            this.campaignId = campaignId;
+            this.name = name;
+            this.goal = goal;
+            this.raised = raised;
+            this.expenses = expenses;
+            this.net = net;
+            this.progress = progress;
+        }
+    }
+
+    public static void main(String[] args) {
+        launch(args);
     }
 }
