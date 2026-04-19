@@ -28,20 +28,14 @@ if (-not $jdbcJar) {
 }
 Write-Host "[OK] Found JDBC: $($jdbcJar.Name)" -ForegroundColor Green
 
-# Step 3: Find JavaFX SDK (prefer 21.0.9 for Java 21 compatibility)
+# Step 3: Find JavaFX SDK
 $javafxBase = Get-ChildItem -Path lib -Directory -Filter "javafx-*" -ErrorAction SilentlyContinue |
     Sort-Object Name | Select-Object -First 1
 if (-not $javafxBase) {
     Write-Host "[ERROR] JavaFX SDK not found in lib/ folder" -ForegroundColor Red
     exit 1
 }
-$JAVAFX = Get-ChildItem -Path $javafxBase.FullName -Directory -Filter "javafx-sdk-*" -ErrorAction SilentlyContinue |
-    Select-Object -First 1
-if (-not $JAVAFX) {
-    $JAVAFX = $javafxBase
-} else {
-    $JAVAFX = $JAVAFX.FullName
-}
+$JAVAFX = Resolve-Path $javafxBase.FullName
 if (-not (Test-Path "$JAVAFX\lib")) {
     Write-Host "[ERROR] JavaFX lib folder not found at: $JAVAFX\lib" -ForegroundColor Red
     exit 1
@@ -72,7 +66,7 @@ Write-Host "[OK] Resources copied" -ForegroundColor Green
 Write-Host "`n[STEP] Launching Beacon application..." -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
-& java --module-path "$JAVAFX\lib" --add-modules javafx.controls,javafx.fxml -cp "out;$jdbcPath" com.beacon.ui.MainFrame
+& java --module-path "$JAVAFX\lib" --add-modules javafx.controls,javafx.fxml -cp "out;$jdbcPath" com.beacon.Main
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[ERROR] Runtime error occurred" -ForegroundColor Red

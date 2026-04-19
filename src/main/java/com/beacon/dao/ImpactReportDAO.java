@@ -20,7 +20,7 @@ public class ImpactReportDAO {
                 + "(c.current_funds - ISNULL(SUM(e.amount), 0)) AS net_funds "
                 + "FROM campaigns c "
                 + "LEFT JOIN expenses e ON e.campaign_id = c.campaign_id "
-                + "GROUP BY c.campaign_id, c.name, c.goal_amount, c.current_funds "
+                + "GROUP BY c.campaign_id, c.name, c.goal_amount, c.current_funds, c.created_at "
                 + "ORDER BY c.created_at DESC";
 
         try (Connection conn = DatabaseConnection.getConnection();

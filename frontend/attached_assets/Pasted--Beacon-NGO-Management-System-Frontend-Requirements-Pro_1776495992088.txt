@@ -1,0 +1,219 @@
+# Beacon NGO Management System — Frontend Requirements
+
+## Project Overview
+
+Beacon is a desktop application for managing NGO operations. It handles campaigns, donations,
+volunteer coordination, expense tracking, and impact reporting. The frontend must support two
+user roles: **Admin** and **Volunteer**. There is no authentication screen required — role is
+assumed from context (can be a simple role selector at the top or hardcoded per screen for now).
+
+---
+
+## Navigation
+
+The application has 7 main sections. Navigation must be always visible and clearly indicate
+which section is currently active. The sections are:
+
+1. Create Campaign
+2. Campaign Dashboard
+3. Donations
+4. Expense Log
+5. Volunteer Apply
+6. Admin Approvals
+7. Impact Report
+
+---
+
+## Screens
+
+---
+
+### 1. Create Campaign
+
+A form for an admin to create a new fundraising campaign.
+
+**Fields:**
+- Campaign Name (text input)
+- Description (multi-line text input)
+- Goal Amount in PKR (numeric input)
+- Deadline (date input)
+- Admin User ID (numeric input)
+
+**Actions:**
+- Submit button that triggers campaign creation
+- On success: show a success confirmation to the user and clear the form
+- On failure: show a clear error message explaining what went wrong
+
+**Validation:**
+- All fields required
+- Goal amount must be a positive number
+- Deadline must be a valid date
+
+---
+
+### 2. Campaign Dashboard
+
+A read-only overview of all campaigns in the system.
+
+**Display:**
+- A filterable list/table of all campaigns
+- Filter by status: ALL / ACTIVE / COMPLETED / CANCELLED
+- A refresh control to reload data
+
+**Each campaign entry shows:**
+- Campaign ID
+- Name
+- Goal Amount (PKR)
+- Amount Raised (PKR)
+- Status
+- Deadline
+- Created By (user ID)
+
+**Visual requirements:**
+- Status must be visually distinct — ACTIVE, COMPLETED, and CANCELLED should not look the same
+- Amount Raised should give a visual sense of progress toward the goal (e.g. a progress indicator)
+
+---
+
+### 3. Donations
+
+Allows a donor to contribute to a campaign and view their donation history.
+
+**Form fields:**
+- Donor ID (numeric input)
+- Donation Amount in PKR (numeric input)
+
+**Campaign selection:**
+- A list of available campaigns is displayed
+- The donor selects a campaign from this list before donating
+
+**Actions:**
+- Donate to the selected campaign
+- Refresh the campaign list
+- View donation history for the entered Donor ID
+
+**After a successful donation:**
+- Display a receipt with the following information:
+  - Receipt Number
+  - Donation ID
+  - Donor ID
+  - Campaign ID
+  - Amount (PKR)
+  - Date and Time of transaction
+
+**Donation history display:**
+- Columns: Donation ID | Campaign ID | Amount | Transaction Date | Receipt Number
+
+---
+
+### 4. Expense Log
+
+Allows an admin to log an expense against a campaign.
+
+**Fields:**
+- Campaign (dropdown — populated from active campaigns)
+- Category (dropdown — options: Logistics, Food, Transport, Medical, Operations, Other)
+- Amount in PKR (numeric input)
+- Description (multi-line text input)
+- Admin ID (numeric input)
+
+**Remaining Balance:**
+- When a campaign is selected, display the current remaining balance for that campaign
+- This should update automatically when the campaign selection changes
+
+**Actions:**
+- Log Expense button
+- On success: confirmation message, form clears
+- On failure: error message (e.g. insufficient funds, invalid input)
+
+**Validation:**
+- Amount must be positive
+- Amount cannot exceed the remaining balance of the selected campaign
+- All fields required
+
+---
+
+### 5. Volunteer Apply
+
+A portal for a volunteer to apply to a campaign.
+
+**Fields:**
+- Volunteer User ID (numeric input)
+- Campaign (dropdown — shows only ACTIVE campaigns)
+- Primary Skill (dropdown — options: Teaching, Medical, Logistics, IT, Outreach, Design)
+- Bio / Statement of Interest (multi-line text input, required, cannot be empty)
+
+**Actions:**
+- Submit application
+- On success: confirmation message, form clears
+- On duplicate application: show a specific error ("You have already applied to this campaign")
+
+**My Applications section:**
+- Below the form, show a read-only list of applications submitted by the entered Volunteer ID
+- Columns: Application ID | Campaign | Skill | Status | Date Applied
+- Status must be visually distinct: PENDING, APPROVED, REJECTED should look different from each other
+- A refresh control to reload this list
+
+---
+
+### 6. Admin Approvals
+
+An admin interface to review and act on volunteer applications.
+
+**Filter:**
+- Filter applications by status: ALL / PENDING / APPROVED / REJECTED
+- Default filter should be PENDING
+- A refresh control
+
+**Applications list/table:**
+- Columns: Application ID | Campaign | Volunteer ID | Skill | Bio | Status | Rejection Reason | Reviewed By
+- Clicking a row selects it for action
+
+**Action controls (operate on the selected application):**
+- Admin Reviewer ID (numeric input)
+- Rejection Reason (text input — required only when rejecting)
+- Approve button
+- Reject button
+
+**Business rules:**
+- Rejection Reason must not be empty if the admin clicks Reject
+- Only PENDING applications can be approved or rejected
+- After an action, the list refreshes automatically
+
+---
+
+### 7. Impact Report
+
+A financial summary report across all campaigns for admin review.
+
+**Display:**
+- A list/table of all campaigns with their financial breakdown
+- Columns: Campaign ID | Campaign Name | Goal | Total Raised | Total Expenses | Net Funds | Progress %
+
+**Visual requirements:**
+- Progress % should be shown as a visual indicator (not just a number)
+- Net Funds should be visually distinct when negative (overspent) vs positive
+
+**Selected Campaign Detail:**
+- When a campaign is selected from the list, show a detailed breakdown below:
+  - Campaign name
+  - Total Raised
+  - Total Expenses
+  - Net Funds (Raised minus Expenses)
+  - Progress toward goal as a percentage
+  - A visual progress indicator showing how close the campaign is to its goal
+
+**Actions:**
+- Refresh button to reload all report data
+
+---
+
+## General UI Requirements
+
+- The interface must clearly distinguish between **Admin-only** sections (Create Campaign, Expense Log, Admin Approvals, Impact Report) and **Volunteer** sections (Volunteer Apply)
+- All tables/lists must show a friendly empty state message when there is no data
+- All destructive or irreversible actions (like rejecting a volunteer) must require a confirmation step or a mandatory reason field before proceeding
+- Error messages must be specific — "Something went wrong" is not acceptable; the user must know what to fix
+- The layout must not feel cramped — sufficient spacing between form elements and sections
+- Currency values must always be displayed with "PKR" prefix and two decimal places
+- Dates must be in a readable format (not raw timestamps)

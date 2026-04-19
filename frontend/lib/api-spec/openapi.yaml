@@ -1,0 +1,774 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Beacon NGO Management System API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: campaigns
+    description: Campaign management
+  - name: donations
+    description: Donation operations
+  - name: expenses
+    description: Expense tracking
+  - name: volunteers
+    description: Volunteer applications
+  - name: reports
+    description: Impact reporting
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /campaigns:
+    get:
+      operationId: listCampaigns
+      tags: [campaigns]
+      summary: List all campaigns
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ALL, ACTIVE, COMPLETED, CANCELLED]
+      responses:
+        "200":
+          description: List of campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Campaign"
+    post:
+      operationId: createCampaign
+      tags: [campaigns]
+      summary: Create a new campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCampaignBody"
+      responses:
+        "201":
+          description: Campaign created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /campaigns/active:
+    get:
+      operationId: listActiveCampaigns
+      tags: [campaigns]
+      summary: List only active campaigns
+      responses:
+        "200":
+          description: Active campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Campaign"
+
+  /campaigns/{id}:
+    get:
+      operationId: getCampaign
+      tags: [campaigns]
+      summary: Get a campaign by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Campaign details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /campaigns/{id}/balance:
+    get:
+      operationId: getCampaignBalance
+      tags: [campaigns]
+      summary: Get remaining balance for a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Campaign balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignBalance"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /donations:
+    post:
+      operationId: createDonation
+      tags: [donations]
+      summary: Make a donation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDonationBody"
+      responses:
+        "201":
+          description: Donation created with receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonationReceipt"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /donations/donor/{donorId}:
+    get:
+      operationId: getDonationsByDonor
+      tags: [donations]
+      summary: Get donation history for a donor
+      parameters:
+        - name: donorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Donor donation history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Donation"
+
+  /expenses:
+    post:
+      operationId: createExpense
+      tags: [expenses]
+      summary: Log an expense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExpenseBody"
+      responses:
+        "201":
+          description: Expense logged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /expenses/campaign/{campaignId}:
+    get:
+      operationId: getExpensesByCampaign
+      tags: [expenses]
+      summary: Get expenses for a campaign
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Campaign expenses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Expense"
+
+  /volunteers/apply:
+    post:
+      operationId: applyVolunteer
+      tags: [volunteers]
+      summary: Submit a volunteer application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VolunteerApplyBody"
+      responses:
+        "201":
+          description: Application submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolunteerApplication"
+        "400":
+          description: Validation error or duplicate application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Already applied to this campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /volunteers/{volunteerId}/applications:
+    get:
+      operationId: getVolunteerApplications
+      tags: [volunteers]
+      summary: Get all applications for a volunteer
+      parameters:
+        - name: volunteerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Volunteer applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VolunteerApplication"
+
+  /volunteers/applications:
+    get:
+      operationId: listAllApplications
+      tags: [volunteers]
+      summary: List all volunteer applications (admin)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ALL, PENDING, APPROVED, REJECTED]
+      responses:
+        "200":
+          description: All applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VolunteerApplication"
+
+  /volunteers/applications/{id}/approve:
+    post:
+      operationId: approveApplication
+      tags: [volunteers]
+      summary: Approve a volunteer application
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewApplicationBody"
+      responses:
+        "200":
+          description: Application approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolunteerApplication"
+        "400":
+          description: Cannot approve non-pending application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /volunteers/applications/{id}/reject:
+    post:
+      operationId: rejectApplication
+      tags: [volunteers]
+      summary: Reject a volunteer application
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectApplicationBody"
+      responses:
+        "200":
+          description: Application rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolunteerApplication"
+        "400":
+          description: Cannot reject non-pending application or missing reason
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /reports/impact:
+    get:
+      operationId: getImpactReport
+      tags: [reports]
+      summary: Get financial impact report across all campaigns
+      responses:
+        "200":
+          description: Impact report
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CampaignImpact"
+
+  /reports/summary:
+    get:
+      operationId: getReportSummary
+      tags: [reports]
+      summary: Get overall NGO summary stats
+      responses:
+        "200":
+          description: Overall summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportSummary"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: string
+      required:
+        - error
+
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        goalAmount:
+          type: number
+          format: float
+        amountRaised:
+          type: number
+          format: float
+        status:
+          type: string
+          enum: [ACTIVE, COMPLETED, CANCELLED]
+        deadline:
+          type: string
+          format: date
+        adminUserId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - description
+        - goalAmount
+        - amountRaised
+        - status
+        - deadline
+        - adminUserId
+        - createdAt
+
+    CreateCampaignBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        goalAmount:
+          type: number
+          format: float
+        deadline:
+          type: string
+          format: date
+        adminUserId:
+          type: integer
+      required:
+        - name
+        - description
+        - goalAmount
+        - deadline
+        - adminUserId
+
+    CampaignBalance:
+      type: object
+      properties:
+        campaignId:
+          type: integer
+        campaignName:
+          type: string
+        totalRaised:
+          type: number
+          format: float
+        totalExpenses:
+          type: number
+          format: float
+        remainingBalance:
+          type: number
+          format: float
+      required:
+        - campaignId
+        - campaignName
+        - totalRaised
+        - totalExpenses
+        - remainingBalance
+
+    Donation:
+      type: object
+      properties:
+        id:
+          type: integer
+        donorId:
+          type: integer
+        campaignId:
+          type: integer
+        amount:
+          type: number
+          format: float
+        transactionDate:
+          type: string
+          format: date-time
+        receiptNumber:
+          type: string
+      required:
+        - id
+        - donorId
+        - campaignId
+        - amount
+        - transactionDate
+        - receiptNumber
+
+    DonationReceipt:
+      type: object
+      properties:
+        receiptNumber:
+          type: string
+        donationId:
+          type: integer
+        donorId:
+          type: integer
+        campaignId:
+          type: integer
+        amount:
+          type: number
+          format: float
+        transactionDate:
+          type: string
+          format: date-time
+      required:
+        - receiptNumber
+        - donationId
+        - donorId
+        - campaignId
+        - amount
+        - transactionDate
+
+    CreateDonationBody:
+      type: object
+      properties:
+        donorId:
+          type: integer
+        campaignId:
+          type: integer
+        amount:
+          type: number
+          format: float
+      required:
+        - donorId
+        - campaignId
+        - amount
+
+    Expense:
+      type: object
+      properties:
+        id:
+          type: integer
+        campaignId:
+          type: integer
+        category:
+          type: string
+          enum: [Logistics, Food, Transport, Medical, Operations, Other]
+        amount:
+          type: number
+          format: float
+        description:
+          type: string
+        adminId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - campaignId
+        - category
+        - amount
+        - description
+        - adminId
+        - createdAt
+
+    CreateExpenseBody:
+      type: object
+      properties:
+        campaignId:
+          type: integer
+        category:
+          type: string
+          enum: [Logistics, Food, Transport, Medical, Operations, Other]
+        amount:
+          type: number
+          format: float
+        description:
+          type: string
+        adminId:
+          type: integer
+      required:
+        - campaignId
+        - category
+        - amount
+        - description
+        - adminId
+
+    VolunteerApplication:
+      type: object
+      properties:
+        id:
+          type: integer
+        volunteerId:
+          type: integer
+        campaignId:
+          type: integer
+        campaignName:
+          type: string
+        skill:
+          type: string
+          enum: [Teaching, Medical, Logistics, IT, Outreach, Design]
+        bio:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+        rejectionReason:
+          type: string
+          nullable: true
+        reviewedBy:
+          type: integer
+          nullable: true
+        appliedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - volunteerId
+        - campaignId
+        - campaignName
+        - skill
+        - bio
+        - status
+        - appliedAt
+
+    VolunteerApplyBody:
+      type: object
+      properties:
+        volunteerId:
+          type: integer
+        campaignId:
+          type: integer
+        skill:
+          type: string
+          enum: [Teaching, Medical, Logistics, IT, Outreach, Design]
+        bio:
+          type: string
+      required:
+        - volunteerId
+        - campaignId
+        - skill
+        - bio
+
+    ReviewApplicationBody:
+      type: object
+      properties:
+        adminId:
+          type: integer
+      required:
+        - adminId
+
+    RejectApplicationBody:
+      type: object
+      properties:
+        adminId:
+          type: integer
+        rejectionReason:
+          type: string
+      required:
+        - adminId
+        - rejectionReason
+
+    CampaignImpact:
+      type: object
+      properties:
+        campaignId:
+          type: integer
+        campaignName:
+          type: string
+        goal:
+          type: number
+          format: float
+        totalRaised:
+          type: number
+          format: float
+        totalExpenses:
+          type: number
+          format: float
+        netFunds:
+          type: number
+          format: float
+        progressPercent:
+          type: number
+          format: float
+        status:
+          type: string
+          enum: [ACTIVE, COMPLETED, CANCELLED]
+        deadline:
+          type: string
+          format: date
+      required:
+        - campaignId
+        - campaignName
+        - goal
+        - totalRaised
+        - totalExpenses
+        - netFunds
+        - progressPercent
+        - status
+        - deadline
+
+    ReportSummary:
+      type: object
+      properties:
+        totalCampaigns:
+          type: integer
+        activeCampaigns:
+          type: integer
+        totalRaised:
+          type: number
+          format: float
+        totalExpenses:
+          type: number
+          format: float
+        totalDonations:
+          type: integer
+        totalVolunteers:
+          type: integer
+        pendingApplications:
+          type: integer
+      required:
+        - totalCampaigns
+        - activeCampaigns
+        - totalRaised
+        - totalExpenses
+        - totalDonations
+        - totalVolunteers
+        - pendingApplications

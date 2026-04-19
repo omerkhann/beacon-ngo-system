@@ -1,33 +1,14 @@
-# Compiled class files
-*.class
-
-# IDE files
-.idea/
-.vscode/
-*.iml
-*.ipr
-*.iws
+# Dependencies
+frontend/artifacts/beacon/node_modules/
+frontend/artifacts/api-server/node_modules/
+frontend/lib/*/node_modules/
 
 # Build output
 out/
-target/
-build/
+frontend/artifacts/beacon/dist/
 
-# OS files
-.DS_Store
-Thumbs.db
-
-# Database config (local)
-db.properties
+# Local config
 db.env
-lib/
 
-# Compiled binaries
-*.jar
-*.war
-
-# Log files
-*.log
-
-# PDF documents (deliverables)
-*.pdf
+# JavaFX SDK (too large for git)
+lib/javafx-sdk-21.0.9/
