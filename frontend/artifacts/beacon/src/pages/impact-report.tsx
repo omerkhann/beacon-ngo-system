@@ -1,31 +1,64 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/store";
-import type { CampaignImpact } from "@/types";
+import type { CampaignImpact, Campaign, User } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 
 export default function ImpactReport() {
-  const { getImpactReport } = useStore();
+  const { getImpactReport, getCampaigns } = useStore();
+  const [user, setUser] = useState<User | null>(null);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [rows, setRows] = useState<CampaignImpact[]>([]);
   const [selected, setSelected] = useState<CampaignImpact | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const load = async () => {
     setLoading(true);
     try {
       const data = await getImpactReport();
-      setRows(data);
+      
+      // Filter impact data based on user role
+      if (user?.role === "CAMPAIGN_MANAGER") {
+        // Get campaigns managed by this user
+        const userCampaignIds = campaigns
+          .filter(c => c.managerId === user.id)
+          .map(c => c.id);
+        // Only show impact data for campaigns they manage
+        setRows(data.filter(row => userCampaignIds.includes(row.campaignId)));
+      } else {
+        // Admins see all impact data
+        setRows(data);
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    // Load user from localStorage
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        setUser(JSON.parse(userData));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // Load campaigns for filtering
+    getCampaigns("ALL").then(setCampaigns).catch(console.error);
+  }, []);
+
+  useEffect(() => { load(); }, [campaigns]);
 
   const totalRaised = rows.reduce((s, r) => s + r.totalRaised, 0);
   const totalExpenses = rows.reduce((s, r) => s + r.totalExpenses, 0);
@@ -38,7 +71,7 @@ export default function ImpactReport() {
     p >= 75 ? "text-green-600" : p >= 40 ? "text-orange-500" : "text-red-600";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-emerald-50 dark:bg-emerald-950/20 p-6 rounded-lg">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Impact Report</h1>
@@ -80,6 +113,17 @@ export default function ImpactReport() {
       </div>
 
       <Card>
+        <CardHeader>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search campaigns by name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -93,7 +137,9 @@ export default function ImpactReport() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.length > 0 ? rows.map(r => (
+              {rows.length > 0 ? rows
+                .filter((r) => r.campaignName.toLowerCase().includes(searchTerm.toLowerCase()))
+                .map(r => (
                 <TableRow key={r.campaignId}
                   className={`cursor-pointer ${selected?.campaignId === r.campaignId ? "bg-primary/10" : ""}`}
                   onClick={() => setSelected(r)}>

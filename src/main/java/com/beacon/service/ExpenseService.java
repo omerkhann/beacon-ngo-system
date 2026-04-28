@@ -60,4 +60,8 @@ public class ExpenseService {
     public List<Expense> getExpensesByCampaign(int campaignId) {
         return expenseDAO.getExpensesByCampaign(campaignId);
     }
+
+    public List<Expense> getAllExpenses() {
+        return expenseDAO.getAllExpenses();
+    }
 }

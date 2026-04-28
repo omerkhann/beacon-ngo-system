@@ -21,7 +21,7 @@ public class CampaignDAO {
      * Post-condition: Campaign status is set to 'ACTIVE'.
      */
     public boolean createCampaign(Campaign campaign) {
-        String sql = "INSERT INTO campaigns (name, description, goal_amount, deadline, status, created_by) VALUES (?, ?, ?, ?, 'ACTIVE', ?)";
+        String sql = "INSERT INTO campaigns (name, description, goal_amount, deadline, status, created_by, manager_id) VALUES (?, ?, ?, ?, 'ACTIVE', ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -31,6 +31,11 @@ public class CampaignDAO {
             stmt.setBigDecimal(3, campaign.getGoalAmount());
             stmt.setDate(4, Date.valueOf(campaign.getDeadline()));
             stmt.setInt(5, campaign.getCreatedBy());
+            if (campaign.getManagerId() != null) {
+                stmt.setInt(6, campaign.getManagerId());
+            } else {
+                stmt.setNull(6, java.sql.Types.INTEGER);
+            }
 
             int rows = stmt.executeUpdate();
             if (rows > 0) {
@@ -167,6 +172,27 @@ public class CampaignDAO {
     }
 
     /**
+     * Update a campaign's status.
+     */
+    public boolean updateCampaignStatus(int campaignId, String newStatus) {
+        String sql = "UPDATE campaigns SET status = ? WHERE campaign_id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, newStatus);
+            stmt.setInt(2, campaignId);
+
+            int rows = stmt.executeUpdate();
+            return rows > 0;
+        } catch (SQLException e) {
+            System.err.println("Error updating campaign status: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
      * Helper method to map a ResultSet row to a Campaign object.
      */
     private Campaign mapResultSetToCampaign(ResultSet rs) throws SQLException {
@@ -179,6 +205,7 @@ public class CampaignDAO {
         campaign.setDeadline(rs.getDate("deadline").toLocalDate());
         campaign.setStatus(rs.getString("status"));
         campaign.setCreatedBy(rs.getInt("created_by"));
+        campaign.setManagerId(rs.getInt("manager_id") != 0 ? rs.getInt("manager_id") : null); // Handle NULL manager_id
         campaign.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
         return campaign;
     }

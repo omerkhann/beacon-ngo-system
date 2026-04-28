@@ -81,6 +81,23 @@ public class ExpenseDAO {
         return expenses;
     }
 
+    public List<Expense> getAllExpenses() {
+        List<Expense> expenses = new ArrayList<>();
+        String sql = "SELECT * FROM expenses ORDER BY expense_date DESC";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                expenses.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching all expenses: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return expenses;
+    }
+
     private Expense mapRow(ResultSet rs) throws SQLException {
         Expense expense = new Expense();
         expense.setExpenseId(rs.getInt("expense_id"));

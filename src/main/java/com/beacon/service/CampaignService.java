@@ -59,4 +59,11 @@ public class CampaignService {
     public Campaign getCampaignById(int campaignId) {
         return campaignDAO.getCampaignById(campaignId);
     }
+
+    /**
+     * Update a campaign's status (ACTIVE, COMPLETED, CANCELLED).
+     */
+    public boolean updateCampaignStatus(int campaignId, String newStatus) {
+        return campaignDAO.updateCampaignStatus(campaignId, newStatus);
+    }
 }

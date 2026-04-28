@@ -7,14 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, RefreshCw } from "lucide-react";
+import { CheckCircle2, AlertTriangle } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import type { VolunteerSkill } from "@/types";
 
 const SKILLS: VolunteerSkill[] = ["Teaching", "Medical", "Logistics", "IT", "Outreach", "Design"];
@@ -23,8 +19,8 @@ export default function VolunteerApply() {
   const { getActiveCampaigns, addApplication, getApplicationsByVolunteer } = useStore();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [myApplications, setMyApplications] = useState<VolunteerApplication[]>([]);
+  const [volunteerId, setVolunteerId] = useState<number | null>(null);
   const [form, setForm] = useState({
-    volunteerId: "",
     campaignId: "",
     skill: "" as VolunteerSkill | "",
     bio: "",
@@ -33,29 +29,55 @@ export default function VolunteerApply() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
+  // Load user from localStorage and get their applications
+  useEffect(() => {
+    try {
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        const user = JSON.parse(userData);
+        setVolunteerId(user.id);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
   useEffect(() => {
     getActiveCampaigns().then(setCampaigns).catch(console.error);
   }, []);
 
+  // Load user's applications whenever volunteerId changes
+  useEffect(() => {
+    if (!volunteerId) return;
+    loadMyApplications();
+  }, [volunteerId]);
+
   const loadMyApplications = async () => {
-    if (!form.volunteerId || Number(form.volunteerId) <= 0) return;
+    if (!volunteerId) return;
     try {
-      const data = await getApplicationsByVolunteer(Number(form.volunteerId));
+      const data = await getApplicationsByVolunteer(volunteerId);
       setMyApplications(data);
     } catch (e) { console.error(e); }
   };
 
+  // Check if user has already applied to the selected campaign
+  const hasAlreadyApplied = () => {
+    if (!form.campaignId) return false;
+    return myApplications.some(app => app.campaignId === Number(form.campaignId));
+  };
+
   const handle = async () => {
     setError("");
-    if (!form.volunteerId || Number(form.volunteerId) <= 0) { setError("Volunteer ID is required."); return; }
+    if (!volunteerId || volunteerId <= 0) { setError("User ID not found. Please log in."); return; }
     if (!form.campaignId) { setError("Please select a campaign."); return; }
     if (!form.skill) { setError("Please select a skill."); return; }
     if (!form.bio.trim()) { setError("Bio / Statement of Interest cannot be empty."); return; }
+    if (hasAlreadyApplied()) { setError("You have already applied to this campaign."); return; }
 
     setLoading(true);
     try {
       await addApplication({
-        volunteerId: Number(form.volunteerId),
+        volunteerId: volunteerId,
         campaignId: Number(form.campaignId),
         skill: form.skill as VolunteerSkill,
         bio: form.bio.trim(),
@@ -71,16 +93,8 @@ export default function VolunteerApply() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "APPROVED": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "REJECTED": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-      default: return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-    }
-  };
-
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl bg-emerald-50 dark:bg-emerald-950/20 p-6 rounded-lg">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Volunteer Apply</h1>
         <p className="text-muted-foreground mt-2">Apply to contribute your skills to an active campaign.</p>
@@ -105,10 +119,9 @@ export default function VolunteerApply() {
         <CardHeader><CardTitle>Application Form</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Volunteer User ID</Label>
-            <Input type="number" placeholder="Enter your user ID" value={form.volunteerId}
-              onChange={e => setForm(f => ({ ...f, volunteerId: e.target.value }))}
-              onBlur={loadMyApplications} />
+            <Label>Your Volunteer ID</Label>
+            <Input type="text" disabled value={volunteerId || "Loading..."} className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed" />
+            <p className="text-xs text-muted-foreground">Your ID is automatically filled from your account</p>
           </div>
 
           <div className="space-y-2">
@@ -122,6 +135,15 @@ export default function VolunteerApply() {
               </SelectContent>
             </Select>
           </div>
+
+          {hasAlreadyApplied() && (
+            <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-700 dark:text-amber-200">
+                You have already applied to this campaign.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-2">
             <Label>Primary Skill</Label>
@@ -140,48 +162,11 @@ export default function VolunteerApply() {
             <p className="text-xs text-muted-foreground text-right">{form.bio.length} / 500</p>
           </div>
 
-          <Button className="w-full" onClick={handle} disabled={loading}>
-            {loading ? "Submitting..." : "Apply to Campaign"}
+          <Button className="w-full" onClick={handle} disabled={loading || hasAlreadyApplied() || !volunteerId}>
+            {loading ? "Submitting..." : hasAlreadyApplied() ? "Already Applied" : "Apply to Campaign"}
           </Button>
         </CardContent>
       </Card>
-
-      {myApplications.length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>My Applications</CardTitle>
-            <Button variant="outline" size="icon" onClick={loadMyApplications}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Campaign</TableHead>
-                  <TableHead>Skill</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {myApplications.map(a => (
-                  <TableRow key={a.id}>
-                    <TableCell>{a.id}</TableCell>
-                    <TableCell>{a.campaignId}</TableCell>
-                    <TableCell>{a.skill}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`border-0 font-semibold ${getStatusColor(a.status)}`}>
-                        {a.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

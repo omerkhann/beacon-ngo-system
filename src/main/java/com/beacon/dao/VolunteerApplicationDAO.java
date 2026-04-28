@@ -42,7 +42,7 @@ public class VolunteerApplicationDAO {
 
     public List<VolunteerApplication> getApplicationsByStatus(String status) {
         List<VolunteerApplication> applications = new ArrayList<>();
-        String sql = "SELECT * FROM volunteer_applications WHERE status = ? ORDER BY applied_at DESC";
+        String sql = "SELECT va.*, u.full_name as volunteer_name, c.name as campaign_name FROM volunteer_applications va JOIN users u ON va.volunteer_id = u.user_id JOIN campaigns c ON va.campaign_id = c.campaign_id WHERE va.status = ? ORDER BY va.applied_at DESC";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -62,7 +62,7 @@ public class VolunteerApplicationDAO {
 
     public List<VolunteerApplication> getAllApplications() {
         List<VolunteerApplication> applications = new ArrayList<>();
-        String sql = "SELECT * FROM volunteer_applications ORDER BY applied_at DESC";
+        String sql = "SELECT va.*, u.full_name as volunteer_name, c.name as campaign_name FROM volunteer_applications va JOIN users u ON va.volunteer_id = u.user_id JOIN campaigns c ON va.campaign_id = c.campaign_id ORDER BY va.applied_at DESC";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 Statement stmt = conn.createStatement();
@@ -105,6 +105,8 @@ public class VolunteerApplicationDAO {
         app.setBio(rs.getString("bio"));
         app.setStatus(rs.getString("status"));
         app.setRejectionReason(rs.getString("rejection_reason"));
+        app.setVolunteerName(rs.getString("volunteer_name"));
+        app.setCampaignName(rs.getString("campaign_name"));
 
         int reviewedByValue = rs.getInt("reviewed_by");
         if (!rs.wasNull()) {

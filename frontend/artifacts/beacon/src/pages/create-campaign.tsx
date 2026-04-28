@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,28 +6,47 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, AlertCircle } from "lucide-react";
+import type { User } from "@/types";
 
 export default function CreateCampaign() {
   const { addCampaign } = useStore();
+  const [user, setUser] = useState<User | null>(null);
   const [form, setForm] = useState({
     name: "",
     description: "",
     goalAmount: "",
     deadline: "",
-    adminUserId: "1",
+    managerId: "",
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
-  const handle = async () => {
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        // Campaign managers auto-populate their own ID
+        if (parsedUser.role === "CAMPAIGN_MANAGER") {
+          setForm(f => ({ ...f, managerId: String(parsedUser.id) }));
+        }
+      } catch (e) {
+        setError("Failed to load user data");
+      }
+    }
+  }, []);
+
+  const handleSubmit = async () => {
     setError("");
+    if (!user) { setError("User not authenticated"); return; }
     if (!form.name.trim()) { setError("Campaign name is required."); return; }
     if (!form.description.trim()) { setError("Description is required."); return; }
     if (!form.goalAmount || Number(form.goalAmount) <= 0) { setError("Goal amount must be a positive number."); return; }
     if (!form.deadline) { setError("Deadline is required."); return; }
-    if (!form.adminUserId || Number(form.adminUserId) <= 0) { setError("Admin User ID is required."); return; }
+    if (user.role === "ADMIN" && !form.managerId) { setError("Campaign manager is required."); return; }
 
     setLoading(true);
     try {
@@ -36,10 +55,15 @@ export default function CreateCampaign() {
         description: form.description.trim(),
         goalAmount: Number(form.goalAmount),
         deadline: form.deadline,
-        adminUserId: Number(form.adminUserId),
+        adminUserId: user.id,
+        managerId: form.managerId ? Number(form.managerId) : undefined,
       });
       setSuccess(true);
-      setForm({ name: "", description: "", goalAmount: "", deadline: "", adminUserId: "1" });
+      const resetForm = { name: "", description: "", goalAmount: "", deadline: "", managerId: "" };
+      if (user.role === "CAMPAIGN_MANAGER") {
+        resetForm.managerId = String(user.id);
+      }
+      setForm(resetForm);
       setTimeout(() => setSuccess(false), 3000);
     } catch (e: any) {
       setError(e.message || "Failed to create campaign.");
@@ -49,7 +73,7 @@ export default function CreateCampaign() {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-4xl bg-emerald-50 dark:bg-emerald-950/20 p-6 rounded-lg">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Create Campaign</h1>
         <p className="text-muted-foreground mt-2">Set up a new fundraising campaign.</p>
@@ -97,12 +121,44 @@ export default function CreateCampaign() {
                 onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Admin User ID</Label>
-            <Input type="number" placeholder="1" value={form.adminUserId}
-              onChange={e => setForm(f => ({ ...f, adminUserId: e.target.value }))} />
-          </div>
-          <Button className="w-full" onClick={handle} disabled={loading}>
+
+          {/* Campaign Manager Selection - Only for Admins */}
+          {user && user.role === "ADMIN" && (
+            <div className="space-y-2">
+              <Label>Campaign Manager ID</Label>
+              <Input 
+                type="number" 
+                placeholder="Enter campaign manager user ID (e.g., 3, 4, 5)" 
+                value={form.managerId}
+                onChange={e => setForm(f => ({ ...f, managerId: e.target.value }))} 
+              />
+              <p className="text-sm text-muted-foreground">Select an existing campaign manager to oversee this campaign.</p>
+            </div>
+          )}
+
+          {/* Auto-populated for Campaign Managers */}
+          {user && user.role === "CAMPAIGN_MANAGER" && (
+            <div className="space-y-2">
+              <Label>Your ID (Manager)</Label>
+              <Input 
+                type="number" 
+                value={form.managerId}
+                disabled 
+              />
+              <p className="text-sm text-muted-foreground">This campaign will be assigned to you.</p>
+            </div>
+          )}
+
+          {user && (
+            <Alert className="bg-blue-50 border-blue-200">
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-700">
+                This campaign will be created by <strong>{user.fullName}</strong> ({user.role})
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Button className="w-full" onClick={handleSubmit} disabled={loading || !user}>
             {loading ? "Creating..." : "Create Campaign"}
           </Button>
         </CardContent>

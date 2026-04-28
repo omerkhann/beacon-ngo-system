@@ -10,11 +10,29 @@ import java.sql.SQLException;
  */
 public class DatabaseConnection {
 
-    private static final String URL = System.getenv().getOrDefault(
-            "BEACON_DB_URL",
-            "jdbc:sqlserver://localhost:1433;databaseName=beacon_db;encrypt=true;trustServerCertificate=true");
+    private static final String URL = getDbUrl();
     private static final String USER = System.getenv().getOrDefault("BEACON_DB_USER", "sa");
     private static final String PASSWORD = System.getenv().getOrDefault("BEACON_DB_PASSWORD", "password");
+
+    private static String getDbUrl() {
+        // First check Java system properties (set via -D flags)
+        String url = System.getProperty("BEACON_DB_URL");
+        if (url != null && !url.isEmpty()) {
+            System.out.println("[DB] Using BEACON_DB_URL from Java properties");
+            return url;
+        }
+
+        // Then check environment variables
+        url = System.getenv("BEACON_DB_URL");
+        if (url != null && !url.isEmpty()) {
+            System.out.println("[DB] Using BEACON_DB_URL from environment");
+            return url;
+        }
+
+        // Default fallback
+        System.out.println("[DB] Using default SQL Server connection URL");
+        return "jdbc:sqlserver://localhost:1433;databaseName=beacon_db;encrypt=true;trustServerCertificate=true";
+    }
 
     /**
      * Returns a new database connection for each call.

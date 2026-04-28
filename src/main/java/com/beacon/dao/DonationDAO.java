@@ -85,7 +85,7 @@ public class DonationDAO {
      */
     public List<Donation> getDonationsByDonorId(int donorId) {
         List<Donation> donations = new ArrayList<>();
-        String sql = "SELECT * FROM donations WHERE donor_id = ? ORDER BY transaction_date DESC";
+        String sql = "SELECT * FROM donations WHERE donor_id = ? ORDER BY donation_date DESC";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -108,7 +108,7 @@ public class DonationDAO {
      */
     public List<Donation> getDonationsByCampaignId(int campaignId) {
         List<Donation> donations = new ArrayList<>();
-        String sql = "SELECT * FROM donations WHERE campaign_id = ? ORDER BY transaction_date DESC";
+        String sql = "SELECT * FROM donations WHERE campaign_id = ? ORDER BY donation_date DESC";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -135,7 +135,7 @@ public class DonationDAO {
         donation.setCampaignId(rs.getInt("campaign_id"));
         donation.setDonorId(rs.getInt("donor_id"));
         donation.setAmount(rs.getBigDecimal("amount"));
-        donation.setTransactionDate(rs.getTimestamp("transaction_date").toLocalDateTime());
+        donation.setTransactionDate(rs.getTimestamp("donation_date").toLocalDateTime());
         donation.setReceiptNumber(rs.getString("receipt_number"));
         return donation;
     }

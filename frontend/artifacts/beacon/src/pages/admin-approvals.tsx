@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/store";
-import type { VolunteerApplication } from "@/types";
+import type { VolunteerApplication, Campaign, User } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -16,33 +16,67 @@ import {
 } from "@/components/ui/table";
 
 export default function AdminApprovals() {
-  const { getApplications, approveApplication, rejectApplication } = useStore();
+  const { getApplications, getCampaigns, approveApplication, rejectApplication } = useStore();
+  const [user, setUser] = useState<User | null>(null);
   const [applications, setApplications] = useState<VolunteerApplication[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [statusFilter, setStatusFilter] = useState("PENDING");
   const [selected, setSelected] = useState<VolunteerApplication | null>(null);
-  const [adminId, setAdminId] = useState("1");
+  const [userId, setUserId] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const load = async (status: string) => {
     try {
       const data = await getApplications(status);
-      setApplications(data);
+      
+      // Filter applications based on user role
+      if (user?.role === "CAMPAIGN_MANAGER") {
+        // Get campaigns managed by this user
+        const userCampaigns = campaigns.filter(c => c.managerId === user.id);
+        const userCampaignIds = userCampaigns.map(c => c.id);
+        // Only show applications for campaigns they manage
+        setApplications(data.filter(app => userCampaignIds.includes(app.campaignId)));
+      } else {
+        // Admins see all applications
+        setApplications(data);
+      }
+      
       setSelected(null);
     } catch (e) { console.error(e); }
   };
 
-  useEffect(() => { load(statusFilter); }, [statusFilter]);
+  useEffect(() => {
+    // Load user from localStorage
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        setUserId(String(parsedUser.id));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // Load campaigns for filtering
+    getCampaigns("ALL").then(setCampaigns).catch(console.error);
+  }, []);
+
+  useEffect(() => { load(statusFilter); }, [statusFilter, campaigns]);
 
   const handleApprove = async () => {
     if (!selected) { setError("Select an application first."); return; }
-    if (!adminId || Number(adminId) <= 0) { setError("Admin ID is required."); return; }
+    if (!userId || Number(userId) <= 0) { setError("User ID is required."); return; }
     setError("");
     setLoading(true);
     try {
-      await approveApplication(selected.id, Number(adminId));
+      await approveApplication(selected.id, Number(userId));
       setSuccess("Application approved successfully.");
       setTimeout(() => setSuccess(""), 3000);
       load(statusFilter);
@@ -55,12 +89,12 @@ export default function AdminApprovals() {
 
   const handleReject = async () => {
     if (!selected) { setError("Select an application first."); return; }
-    if (!adminId || Number(adminId) <= 0) { setError("Admin ID is required."); return; }
+    if (!userId || Number(userId) <= 0) { setError("User ID is required."); return; }
     if (!rejectionReason.trim()) { setError("Rejection reason is required."); return; }
     setError("");
     setLoading(true);
     try {
-      await rejectApplication(selected.id, Number(adminId), rejectionReason.trim());
+      await rejectApplication(selected.id, Number(userId), rejectionReason.trim());
       setSuccess("Application rejected.");
       setRejectionReason("");
       setTimeout(() => setSuccess(""), 3000);
@@ -81,7 +115,7 @@ export default function AdminApprovals() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-emerald-50 dark:bg-emerald-950/20 p-6 rounded-lg">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Admin Approvals</h1>
         <p className="text-muted-foreground mt-2">Review and act on volunteer applications.</p>
@@ -111,6 +145,15 @@ export default function AdminApprovals() {
             <SelectItem value="REJECTED">Rejected</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by volunteer or campaign name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
         <Button variant="outline" size="icon" onClick={() => load(statusFilter)}>
           <RefreshCw className="h-4 w-4" />
         </Button>
@@ -122,8 +165,8 @@ export default function AdminApprovals() {
             <TableHeader>
               <TableRow>
                 <TableHead>App ID</TableHead>
-                <TableHead>Campaign</TableHead>
-                <TableHead>Volunteer ID</TableHead>
+                <TableHead>Campaign Name</TableHead>
+                <TableHead>Volunteer Name</TableHead>
                 <TableHead>Skill</TableHead>
                 <TableHead>Bio</TableHead>
                 <TableHead>Status</TableHead>
@@ -131,13 +174,18 @@ export default function AdminApprovals() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {applications.length > 0 ? applications.map(a => (
+              {applications.length > 0 ? applications
+                .filter((a) =>
+                  a.volunteerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  a.campaignName.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map(a => (
                 <TableRow key={a.id}
                   className={`cursor-pointer ${selected?.id === a.id ? "bg-primary/10" : ""}`}
                   onClick={() => { setSelected(a); setError(""); }}>
                   <TableCell>{a.id}</TableCell>
-                  <TableCell>{a.campaignId}</TableCell>
-                  <TableCell>{a.volunteerId}</TableCell>
+                  <TableCell className="font-medium">{a.campaignName}</TableCell>
+                  <TableCell className="font-medium">{a.volunteerName}</TableCell>
                   <TableCell>{a.skill}</TableCell>
                   <TableCell className="max-w-[200px] truncate text-xs">{a.bio}</TableCell>
                   <TableCell>
@@ -168,9 +216,11 @@ export default function AdminApprovals() {
         {selected && (
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Admin Reviewer ID</Label>
-              <Input type="number" value={adminId}
-                onChange={e => setAdminId(e.target.value)} />
+              <Label>{user?.role === "ADMIN" ? "Admin Reviewer ID" : "Manager ID"}</Label>
+              <Input type="number" value={userId} disabled />
+              <p className="text-sm text-muted-foreground">
+                {user?.role === "ADMIN" ? "Your admin ID" : "Your manager ID"}
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Rejection Reason <span className="text-muted-foreground">(required if rejecting)</span></Label>

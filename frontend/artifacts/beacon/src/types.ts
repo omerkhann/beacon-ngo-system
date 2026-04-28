@@ -2,6 +2,22 @@ export type CampaignStatus = "ACTIVE" | "COMPLETED" | "CANCELLED";
 export type ExpenseCategory = "Logistics" | "Food" | "Transport" | "Medical" | "Operations" | "Other";
 export type ApplicationStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type VolunteerSkill = "Teaching" | "Medical" | "Logistics" | "IT" | "Outreach" | "Design";
+export type TaskStatus = "Not Started" | "In Progress" | "Completed";
+export type UserRole = "ADMIN" | "DONOR" | "VOLUNTEER" | "CAMPAIGN_MANAGER";
+
+export interface User {
+  id: number;
+  username: string;
+  fullName: string;
+  email: string;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
+}
 
 export interface Campaign {
   id: number;
@@ -12,6 +28,7 @@ export interface Campaign {
   status: CampaignStatus;
   deadline: string;
   adminUserId: number;
+  managerId: number;
   createdAt: string;
 }
 
@@ -43,9 +60,25 @@ export interface Expense {
   createdAt: string;
 }
 
+export interface VolunteerTask {
+  taskId: number;
+  campaignId: number;
+  volunteerId: number;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  assignedDate: string;
+  startDate?: string;
+  endDate?: string;
+  serviceHours?: number;
+  volunteerName?: string;
+  campaignName?: string;
+}
+
 export interface VolunteerApplication {
   id: number;
   volunteerId: number;
+  volunteerName: string;
   campaignId: number;
   campaignName: string;
   skill: VolunteerSkill;

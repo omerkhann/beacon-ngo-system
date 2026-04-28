@@ -18,6 +18,8 @@ public class VolunteerApplication {
     private Integer reviewedBy;
     private LocalDateTime appliedAt;
     private LocalDateTime reviewedAt;
+    private String volunteerName;
+    private String campaignName;
 
     public int getApplicationId() {
         return applicationId;
@@ -97,5 +99,21 @@ public class VolunteerApplication {
 
     public void setReviewedAt(LocalDateTime reviewedAt) {
         this.reviewedAt = reviewedAt;
+    }
+
+    public String getVolunteerName() {
+        return volunteerName;
+    }
+
+    public void setVolunteerName(String volunteerName) {
+        this.volunteerName = volunteerName;
+    }
+
+    public String getCampaignName() {
+        return campaignName;
+    }
+
+    public void setCampaignName(String campaignName) {
+        this.campaignName = campaignName;
     }
 }

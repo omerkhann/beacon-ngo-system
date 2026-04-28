@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/store";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import type { Campaign, CampaignStatus } from "@/types";
+import type { Campaign, CampaignStatus, User } from "@/types";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -11,16 +11,31 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { RefreshCw, Search, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 type StatusFilter = "ALL" | CampaignStatus;
 
 export default function Campaigns() {
-  const { getCampaigns } = useStore();
+  const { getCampaigns, updateCampaignStatus } = useStore();
+  const [user, setUser] = useState<User | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [confirmAction, setConfirmAction] = useState<{ campaignId: number; campaign: Campaign; action: CampaignStatus } | null>(null);
 
   const load = async (status: StatusFilter) => {
     setLoading(true);
@@ -34,7 +49,48 @@ export default function Campaigns() {
     }
   };
 
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        setUser(JSON.parse(userData));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
   useEffect(() => { load(statusFilter); }, [statusFilter]);
+
+  const handleStatusChange = async (campaignId: number, newStatus: CampaignStatus) => {
+    setActionLoading(campaignId);
+    setError("");
+    try {
+      await updateCampaignStatus(campaignId, newStatus);
+      setConfirmAction(null);
+      load(statusFilter);
+    } catch (e: any) {
+      setError(e.message || "Failed to update campaign status.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const isBeforeDeadline = (deadline: string) => {
+    return new Date(deadline) > new Date();
+  };
+
+  const handleActionClick = (campaign: Campaign, action: CampaignStatus) => {
+    setConfirmAction({ campaignId: campaign.id, campaign, action });
+  };
+
+  const canChangeStatus = (campaign: Campaign) => {
+    // Admins can always change status
+    if (user?.role === "ADMIN") return true;
+    // Campaign managers can change status for campaigns they manage
+    if (user?.role === "CAMPAIGN_MANAGER" && campaign.managerId === user.id) return true;
+    return false;
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -46,7 +102,7 @@ export default function Campaigns() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-emerald-50 dark:bg-emerald-950/20 p-6 rounded-lg">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Campaign Dashboard</h1>
@@ -66,11 +122,26 @@ export default function Campaigns() {
               <SelectItem value="CANCELLED">Cancelled</SelectItem>
             </SelectContent>
           </Select>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search campaigns by name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-[250px]"
+            />
+          </div>
           <Button variant="outline" size="icon" onClick={() => load(statusFilter)} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardContent className="p-0">
@@ -83,12 +154,17 @@ export default function Campaigns() {
                   <TableHead>Progress</TableHead>
                   <TableHead className="text-right">Raised / Goal</TableHead>
                   <TableHead className="text-right">Deadline</TableHead>
-                  <TableHead className="text-right">Created By</TableHead>
+                  <TableHead className="text-right">Manager</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {campaigns.length > 0 ? (
-                  campaigns.map((campaign) => {
+                  campaigns
+                    .filter((campaign) =>
+                      campaign.name.toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                    .map((campaign) => {
                     const percent = campaign.goalAmount > 0
                       ? Math.min(100, (campaign.amountRaised / campaign.goalAmount) * 100)
                       : 0;
@@ -114,13 +190,40 @@ export default function Campaigns() {
                           <div className="text-xs text-muted-foreground">of {formatCurrency(campaign.goalAmount)}</div>
                         </TableCell>
                         <TableCell className="text-right">{formatDate(campaign.deadline)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">Admin {campaign.adminUserId}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">Manager {campaign.managerId || "-"}</TableCell>
+                        <TableCell className="text-right">
+                          {campaign.status === "ACTIVE" && canChangeStatus(campaign) && (
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs"
+                                onClick={() => handleActionClick(campaign, "COMPLETED")}
+                                disabled={actionLoading === campaign.id}
+                              >
+                                {actionLoading === campaign.id ? "..." : "✓ Complete"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs text-red-600 hover:text-red-700"
+                                onClick={() => handleActionClick(campaign, "CANCELLED")}
+                                disabled={actionLoading === campaign.id}
+                              >
+                                {actionLoading === campaign.id ? "..." : "✗ Cancel"}
+                              </Button>
+                            </div>
+                          )}
+                          {campaign.status !== "ACTIVE" && (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                       </TableRow>
                     );
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                       {loading ? "Loading..." : "No campaigns found."}
                     </TableCell>
                   </TableRow>
@@ -130,6 +233,68 @@ export default function Campaigns() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {confirmAction?.action === "COMPLETED" ? "Complete Campaign?" : "Cancel Campaign?"}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmAction?.action === "COMPLETED"
+                ? "Mark this campaign as completed."
+                : "Mark this campaign as cancelled."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {confirmAction?.action === "COMPLETED" && isBeforeDeadline(confirmAction.campaign.deadline) && (
+            <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-700 dark:text-amber-200">
+                <strong>Early completion:</strong> This campaign's deadline is {formatDate(confirmAction.campaign.deadline)}.
+                Are you sure you want to complete it early?
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {confirmAction?.action === "CANCELLED" && (
+            <Alert className="border-red-500 bg-red-50 dark:bg-red-950">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-700 dark:text-red-200">
+                This action is permanent. All associated tasks and volunteers will remain in the system but will be marked as
+                cancelled.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded text-sm space-y-1">
+            <div>
+              <strong>Campaign:</strong> {confirmAction?.campaign.name}
+            </div>
+            <div>
+              <strong>Status:</strong> ACTIVE → {confirmAction?.action}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmAction(null)}>
+              Cancel
+            </Button>
+            <Button
+              className={confirmAction?.action === "CANCELLED" ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"}
+              onClick={() => {
+                if (confirmAction) {
+                  handleStatusChange(confirmAction.campaignId, confirmAction.action);
+                }
+              }}
+              disabled={actionLoading !== null}
+            >
+              {actionLoading ? "Processing..." : confirmAction?.action === "COMPLETED" ? "✓ Complete" : "✗ Cancel Campaign"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

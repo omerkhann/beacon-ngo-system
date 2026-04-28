@@ -19,6 +19,7 @@ public class Campaign {
     private LocalDate deadline;
     private String status; // ACTIVE, COMPLETED, CANCELLED
     private int createdBy;
+    private Integer managerId; // Campaign manager assigned to manage this campaign
     private LocalDateTime createdAt;
 
     public Campaign() {
@@ -99,6 +100,14 @@ public class Campaign {
 
     public void setCreatedBy(int createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public Integer getManagerId() {
+        return managerId;
+    }
+
+    public void setManagerId(Integer managerId) {
+        this.managerId = managerId;
     }
 
     public LocalDateTime getCreatedAt() {
