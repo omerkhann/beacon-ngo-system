@@ -1,12 +1,12 @@
-#Beacon — NGO & Volunteering Management System
+# Beacon — NGO & Volunteering Management System
 
-A Java-based desktop application for centralizing and streamlining the core operations of non-governmental organizations.
+A full-stack web application for centralizing and streamlining the core operations of non-governmental organizations. Beacon provides a unified platform for campaigns, donations, volunteer management, expense tracking, and financial reporting.
 
-## Project Vision
+## 📋 Project Vision
 
-Beacon addresses a common problem faced by NGOs: reliance on spreadsheets, paper forms, and informal communication for managing campaigns, donations, volunteers, and expenses. Our vision is to provide NGOs with a single, transparent platform where admins, donors, volunteers, and campaign managers can collaborate effectively — reducing disorganization and improving accountability.
+NGOs often struggle with fragmented systems: spreadsheets, paper forms, and scattered communication channels. Beacon solves this by providing a single, transparent platform where admins, donors, volunteers, and campaign managers collaborate effectively—reducing chaos and improving accountability.
 
-## Team
+## 👥 Team
 
 | Name | Role | GitHub |
 |------|------|--------|
@@ -16,72 +16,115 @@ Beacon addresses a common problem faced by NGOs: reliance on spreadsheets, paper
 
 **Team Name:** Team SOLBIX
 
-## Features (Sprint 1 — Campaign & Donation Core)
+## 🛠️ Tech Stack
 
-- **US1:** Create a new fundraising campaign (Admin)
-- **US2:** View active and past campaigns dashboard (Admin)
-- **US3:** Browse campaigns and contribute funds (Donor)
-- **US4:** View donation receipt and history (Donor)
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 18, TypeScript, Tailwind CSS, Vite |
+| **Backend** | Node.js, Express, TypeScript |
+| **Database** | Microsoft SQL Server with Drizzle ORM |
+| **Build** | pnpm (monorepo workspace) |
+| **API** | RESTful with OpenAPI/Zod schema generation |
 
-## Tech Stack
+## 🎯 Key Features
 
-- **Language:** Java 17+
-- **UI:** JavaFX / Swing
-- **Database:** Microsoft SQL Server
-- **Connectivity:** JDBC
-- **Build:** Manual compilation (javac)
+### Sprint 1: Campaign & Donation Core
+- **Campaign Creation** — Admins create and publish fundraising campaigns
+- **Campaign Dashboard** — Public users view active campaigns with progress bars
+- **Donation Processing** — Donors contribute funds with secure payment flow
+- **Donation History** — Donors track past contributions and receipts
+- **Expense Logging** — Managers record campaign expenses for transparency
 
-## Project Structure
+### Sprint 2: Volunteer & Administrative Management
+- **Volunteer Application** — Volunteers apply to campaigns with skill selection
+- **Admin Approval Workflow** — Admins review and approve/reject applications
+- **Detailed Expense Management** — Categorized expense tracking and auditing
+- **Impact Reporting** — Visual dashboards showing campaign financials vs. expenses
+- **Task Assignment** — Volunteers view assigned tasks and fulfillment schedules
+
+### Sprint 3: Advanced Features & Analytics
+- **Multi-Role Authentication** — Secure login with role-based access (Admin, Manager, Volunteer, Donor)
+- **Campaign Search & Discovery** — Real-time filtering and search for campaigns
+- **Volunteer Task Tracking** — Volunteers update task status and log service hours
+- **Campaign Manager Dashboard** — Manage volunteers, assign tasks, view campaign metrics
+- **Financial Analytics** — Charts visualizing funds, expenses, and net impact
+- **Role-Based Dashboards** — Customized views for each user role
+
+## 📂 Project Structure
 
 ```
 beacon-ngo-system/
-├── src/main/java/com/beacon/
-│   ├── model/          # Data classes (Campaign, Donation, User)
-│   ├── dao/            # Database access layer (JDBC queries)
-│   ├── service/        # Business logic layer
-│   ├── ui/             # JavaFX/Swing UI forms
-│   └── util/           # Utility classes (DB connection)
-├── sql/                # Database schema scripts
+├── frontend/
+│   ├── artifacts/
+│   │   ├── api-server/          # Node.js/Express backend
+│   │   └── beacon/              # React SPA frontend
+│   └── lib/
+│       ├── api-client-react/    # Generated React API hooks
+│       ├── api-spec/            # OpenAPI schema
+│       ├── api-zod/             # Zod schema validation
+│       └── db/                  # Drizzle ORM & migrations
+├── sql/                         # Database initialization scripts
 └── README.md
 ```
 
-## Setup (One-Time Only)
+## 🚀 Quick Start
 
-1. **Install SQL Server** and create a database named `beacon_db`.
-2. **Run the schema script**: Open SQL Server Management Studio and execute `sql/schema.sql`.
-3. **Download SQL Server JDBC driver**: Download `mssql-jdbc-12.x.x.jre11.jar` from [Microsoft](https://github.com/microsoft/mssql-jdbc/releases) and save to a local `lib/` folder in the project root.
-4. **Set environment variables** (PowerShell):
-   ```powershell
-   $env:BEACON_DB_URL = "jdbc:sqlserver://localhost:1433;databaseName=beacon_db;encrypt=true;trustServerCertificate=true"
-   $env:BEACON_DB_USER = "sa"
-   $env:BEACON_DB_PASSWORD = "yourStrongPassword"
-   ```
+### Prerequisites
+- Node.js 18+ and pnpm
+- PostgreSQL 14+
+- `.env` file configured (see `db.env` template)
 
-### Sprint 2 Migration (US5-US8)
-
-After pulling Sprint 2 code, run this migration script once:
-
-`sql/sprint2_us5_us8_migration.sql`
-
-This creates the `expenses` and `volunteer_applications` tables used by US5-US8.
-
-## How to Run
-
-Simply execute:
+### Run Everything
 
 ```powershell
-.\run.ps1
+# Start all services (frontend, backend, database)
+.\run-all.ps1
+
+# Stop all services
+.\stop-all.ps1
 ```
 
-That's it! The script will automatically compile and launch the application.
+### Run Individual Services
 
-### Other Commands
-
-**Clean build artifacts:**
 ```powershell
-.\clean.ps1
+# Backend API server (runs on http://localhost:3000)
+cd frontend/artifacts/api-server
+pnpm install
+pnpm dev
+
+# Frontend (runs on http://localhost:5173)
+cd frontend/artifacts/beacon
+pnpm install
+pnpm dev
 ```
 
-## License
+### Database Setup
+
+```powershell
+# Initialize fresh database
+pnpm run db:init
+
+# Run migrations
+pnpm run db:migrate
+```
+
+## 👤 Default Test Credentials
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@beacon.ngo | admin123 |
+| Campaign Manager | manager@beacon.ngo | manager123 |
+| Donor | donor@beacon.ngo | donor123 |
+| Volunteer | volunteer@beacon.ngo | volunteer123 |
+
+## 📊 API Documentation
+
+API spec is auto-generated from OpenAPI schema at `frontend/lib/api-spec/openapi.yaml`. 
+
+Access the interactive API docs:
+- Swagger UI: `http://localhost:3000/docs` (when backend is running)
+- Raw OpenAPI: `http://localhost:3000/openapi.json`
+
+## 📄 License
 
 This project is developed for academic purposes at FAST-NUCES.
