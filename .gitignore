@@ -5,10 +5,27 @@ frontend/lib/*/node_modules/
 
 # Build output
 out/
+target/
 frontend/artifacts/beacon/dist/
+
+# Test reports and coverage
+surefire-reports/
+site/
+*.exec
 
 # Local config
 db.env
+
+# IDE files
+.classpath
+.project
+.settings/
+*.iml
+.idea/
+
+# OS files
+.DS_Store
+*.log
 
 # JavaFX SDK (too large for git)
 lib/javafx-sdk-21.0.9/
