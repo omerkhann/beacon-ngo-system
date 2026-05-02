@@ -11,11 +11,11 @@ Beacon helps NGOs move away from spreadsheets and manual tracking by giving admi
 
 ## 👥 Team
 
-| Name           | Role                       | GitHub                                           |
-|----------------|----------------------------|---------------------------------------------------|
-| M. Omer Khan   | Team Lead & Product Owner  | [@omerkhann](https://github.com/omerkhann)       |
-| Ibrahim Azad   | Architect & Lead Developer | [@ibrahim-azad](https://github.com/ibrahim-azad) |
-| M. Basit Rauf  | Scrum Master & UI Designer | [@i200461](https://github.com/i200461)           |
+| Name           | Role                                              | GitHub                                           |
+|----------------|---------------------------------------------------|--------------------------------------------------|
+| M. Omer Khan   | Developr/ Backened/ Scrum Master & Product Owner  | [@omerkhann](https://github.com/omerkhann)       |
+| Ibrahim Azad   | System Architect/ Database & Lead Developer       | [@ibrahim-azad](https://github.com/ibrahim-azad) |
+| M. Basit Rauf  | QA Engineer & UI/UX Designer                      | [@i200461](https://github.com/i200461)           |
 
 **Team Name:** Team SOLBIX
 
